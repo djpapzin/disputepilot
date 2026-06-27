@@ -33,6 +33,10 @@ class FixtureLoadError(RuntimeError):
     """Raised when synthetic demo fixtures cannot be loaded safely."""
 
 
+class CaseNotFoundError(FixtureLoadError):
+    """Raised when fixture data loads safely but the requested synthetic case is absent."""
+
+
 def _validate_fixture(data: dict[str, Any], source: Path) -> dict[str, Any]:
     missing = sorted(REQUIRED_FIELDS.difference(data))
     if missing:
@@ -67,4 +71,4 @@ def load_case(case_id: str, fixture_dir: Path | str = DEFAULT_FIXTURE_DIR) -> di
     for case in load_cases(fixture_dir):
         if case["case_id"] == case_id:
             return case
-    raise FixtureLoadError(f"Synthetic case not found: {case_id}")
+    raise CaseNotFoundError(f"Synthetic case not found: {case_id}")

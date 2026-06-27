@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.app.fixture_loader import REQUIRED_FIELDS, FixtureLoadError, load_case, load_cases
+from backend.app.fixture_loader import REQUIRED_FIELDS, CaseNotFoundError, FixtureLoadError, load_case, load_cases
 
 
 def test_load_cases_returns_all_synthetic_fixtures():
@@ -27,7 +27,7 @@ def test_load_case_returns_specific_case():
 
 
 def test_load_case_unknown_raises_safe_error():
-    with pytest.raises(FixtureLoadError, match="Synthetic case not found"):
+    with pytest.raises(CaseNotFoundError, match="Synthetic case not found"):
         load_case("DP-NOPE-999")
 
 

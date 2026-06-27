@@ -1,8 +1,21 @@
+import json
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
+from backend.app.fixture_loader import REQUIRED_FIELDS
 from backend.app.main import app
 
 client = TestClient(app)
+
+
+def _set_fixture_dir(path: Path) -> None:
+    app.state.fixture_dir = path
+
+
+def _reset_fixture_dir() -> None:
+    if hasattr(app.state, "fixture_dir"):
+        delattr(app.state, "fixture_dir")
 
 
 def test_health():
@@ -34,6 +47,47 @@ def test_unknown_case_returns_404():
     response = client.get("/cases/DP-NOPE-999")
 
     assert response.status_code == 404
+
+
+def test_case_detail_missing_fixture_directory_returns_500(tmp_path: Path):
+    _set_fixture_dir(tmp_path / "missing-cases")
+    try:
+        response = client.get("/cases/DP-DEBT-001")
+    finally:
+        _reset_fixture_dir()
+
+    assert response.status_code == 500
+    assert "Fixture folder not found" in response.json()["detail"]
+
+
+def test_case_detail_malformed_json_returns_500(tmp_path: Path):
+    folder = tmp_path / "cases"
+    folder.mkdir()
+    (folder / "bad.json").write_text("{not-json", encoding="utf-8")
+    _set_fixture_dir(folder)
+    try:
+        response = client.get("/cases/DP-DEBT-001")
+    finally:
+        _reset_fixture_dir()
+
+    assert response.status_code == 500
+    assert "Invalid JSON fixture" in response.json()["detail"]
+
+
+def test_case_detail_missing_required_fields_returns_500(tmp_path: Path):
+    folder = tmp_path / "cases"
+    folder.mkdir()
+    fixture = {field: "demo" for field in REQUIRED_FIELDS}
+    fixture.pop("case_id")
+    (folder / "missing-field.json").write_text(json.dumps(fixture), encoding="utf-8")
+    _set_fixture_dir(folder)
+    try:
+        response = client.get("/cases/DP-DEBT-001")
+    finally:
+        _reset_fixture_dir()
+
+    assert response.status_code == 500
+    assert "missing required fields" in response.json()["detail"]
 
 
 def test_analyze_case_endpoint():
