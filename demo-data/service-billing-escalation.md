@@ -1,14 +1,14 @@
-# Synthetic demo email: Service delivery / billing escalation
+# Synthetic demo message: Service delivery / billing escalation
 
-> This fixture is synthetic. It does not represent a real person, company, account, service provider, bill, or dispute.
+> This fixture is synthetic. It does not represent a real person, company, account, service provider, bill, or dispute. It intentionally avoids private email addresses, account numbers, case numbers, attachments, and exact real wording.
 
-From: support@example-service-demo.test  
-To: demo.user@example.test  
+From: Synthetic Service Support Team  
+To: Demo User Placeholder  
 Subject: Re: Incorrect billing after cancelled service
 
 Hi,
 
-Thank you for contacting Example Service Demo. We have logged your billing query under reference DP-SVC-204. Our records show the cancellation request was received, but the final invoice may not have been adjusted yet.
+Thank you for contacting Example Service Demo. We have logged your fictional billing query under a demo-only placeholder reference. Our records show the cancellation request was received, but the final invoice may not have been adjusted yet.
 
 Please reply with any missing details by **5 August 2026**. We will escalate to the billing review queue once received.
 
@@ -21,3 +21,4 @@ Example Service Demo Support
 - Deadline: 2026-08-05
 - Risk: medium
 - Suggested action: draft escalation reply with concise timeline and request corrected invoice
+- Redaction warning: real invoices, addresses, ticket numbers, account identifiers, and private correspondence must be replaced with synthetic summaries.

@@ -1,0 +1,88 @@
+{
+  "case_id": "DP-GAM-001",
+  "case_type": "gambling_operator_system_or_refund_dispute",
+  "fake_company": "Example Wager Platform",
+  "fake_sender": "Synthetic Betting Support Desk",
+  "source_label": "gambling_operator_system_or_refund_dispute",
+  "priority": "medium",
+  "current_stage": "response_gap_detection",
+  "trigger_email_summary": "A fictional gambling operator responds to a duplicate bet complaint but does not reconcile the duplicated wager, system timestamp, or balance adjustment.",
+  "timeline_events": [
+    {
+      "date": "2026-07-10",
+      "stage": "problem_event",
+      "summary": "Synthetic user reports that a wager was duplicated during a platform error. Redaction warning: do not store real bet slips or wallet screenshots."
+    },
+    {
+      "date": "2026-07-11",
+      "stage": "initial_complaint",
+      "summary": "Complaint asks the operator to reverse one duplicate wager and explain the system error."
+    },
+    {
+      "date": "2026-07-14",
+      "stage": "company_response",
+      "summary": "Operator says the transaction appears valid but gives no technical reconciliation."
+    }
+  ],
+  "extracted_deadlines": [
+    {
+      "date": "2026-07-21",
+      "type": "operator_followup_target",
+      "source_event": "company_response",
+      "action_required": "Request ledger and system-error investigation result.",
+      "confidence": "medium"
+    }
+  ],
+  "disputed_amounts": [
+    {
+      "amount": "ZAR 50.00",
+      "amount_type": "duplicate_wager",
+      "status": "disputed",
+      "note": "Fictional duplicate bet amount."
+    }
+  ],
+  "evidence_matrix": [
+    {
+      "item": "bet slip placeholder",
+      "status": "redaction_required",
+      "why_it_matters": "Would show the duplicated wager entries."
+    },
+    {
+      "item": "wallet ledger extract placeholder",
+      "status": "missing",
+      "why_it_matters": "Needed to reconcile debits and reversals."
+    },
+    {
+      "item": "system incident response",
+      "status": "missing",
+      "why_it_matters": "Needed to verify whether the platform error affected the wager."
+    }
+  ],
+  "missing_evidence": [
+    "Full synthetic ledger reconciliation",
+    "Technical investigation result",
+    "Reason duplicate entry was not reversed"
+  ],
+  "company_response_gaps": [
+    "No transaction-by-transaction ledger supplied",
+    "No technical system-error response",
+    "No explanation for duplicate wager treatment"
+  ],
+  "recommended_next_action": "Ask the operator for a transaction ledger, technical incident result, and written reason for refusing reversal of the duplicate wager.",
+  "draft_reply_outline": [
+    "Identify the disputed duplicate wager in synthetic terms.",
+    "Request ledger reconciliation and technical investigation findings.",
+    "Ask for reversal or detailed written basis for refusal.",
+    "State that escalation will follow if the gap remains unresolved."
+  ],
+  "telegram_card_preview": {
+    "title": "DP-GAM-001: Duplicate wager system gap",
+    "body": "Medium priority. Operator response lacks ledger and technical reconciliation. Recommended: request evidence and reversal basis.",
+    "actions": ["Approve", "Edit", "Snooze", "Mark done"]
+  },
+  "uipath_case_stage": "Response Gap Review",
+  "redaction_required": {
+    "required": true,
+    "warning": "Replace real bet slips, transaction IDs, account names, screenshots, chat transcripts, and exact operator wording with fictional placeholders."
+  }
+}

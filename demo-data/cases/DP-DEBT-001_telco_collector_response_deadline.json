@@ -1,0 +1,88 @@
+{
+  "case_id": "DP-DEBT-001",
+  "case_type": "telecom_debt_collector_dispute",
+  "fake_company": "Example Signal Recoveries",
+  "fake_sender": "Synthetic Collections Review Desk",
+  "source_label": "telecom_debt_collector_dispute",
+  "priority": "high",
+  "current_stage": "deadline_tracking",
+  "trigger_email_summary": "A fictional collector demands a response about a disputed telecom balance before a short deadline but does not provide an itemized account history.",
+  "timeline_events": [
+    {
+      "date": "2026-07-01",
+      "stage": "problem_event",
+      "summary": "Synthetic telecom service was cancelled, but a final balance continued to appear. Redaction warning: real account records must not be stored."
+    },
+    {
+      "date": "2026-07-08",
+      "stage": "initial_complaint",
+      "summary": "Demo user disputed the balance and requested an itemized reconciliation."
+    },
+    {
+      "date": "2026-07-18",
+      "stage": "participant_response",
+      "summary": "Synthetic collector requested payment or response but did not attach proof of the balance."
+    }
+  ],
+  "extracted_deadlines": [
+    {
+      "date": "2026-07-25",
+      "type": "collector_response_deadline",
+      "source_event": "participant_response",
+      "action_required": "Send proof request and dispute hold notice.",
+      "confidence": "high"
+    }
+  ],
+  "disputed_amounts": [
+    {
+      "amount": "ZAR 1240.00",
+      "amount_type": "claimed_balance",
+      "status": "unreconciled",
+      "note": "Fictional amount for demo only."
+    }
+  ],
+  "evidence_matrix": [
+    {
+      "item": "itemized statement",
+      "status": "missing",
+      "why_it_matters": "Needed to prove the claimed balance."
+    },
+    {
+      "item": "cancellation confirmation placeholder",
+      "status": "redaction_required",
+      "why_it_matters": "Would show whether charges after cancellation are valid."
+    },
+    {
+      "item": "collector demand summary",
+      "status": "available_synthetic_summary",
+      "why_it_matters": "Shows deadline pressure without proof."
+    }
+  ],
+  "missing_evidence": [
+    "Full itemized balance calculation",
+    "Proof that the collector is authorized to act",
+    "Written hold confirmation while the dispute is investigated"
+  ],
+  "company_response_gaps": [
+    "No account reconciliation supplied",
+    "No dispute hold confirmed",
+    "Deadline given without evidence packet"
+  ],
+  "recommended_next_action": "Draft a proof request, dispute the collection deadline, and ask for written confirmation that collection activity is paused pending reconciliation.",
+  "draft_reply_outline": [
+    "State that the balance is disputed.",
+    "Request itemized statement and authority to collect.",
+    "Ask for hold confirmation until evidence is supplied.",
+    "Reserve escalation if the deadline is enforced without proof."
+  ],
+  "telegram_card_preview": {
+    "title": "DP-DEBT-001: Collector deadline without proof",
+    "body": "High priority. Deadline 2026-07-25. Recommended: send proof request and dispute hold notice.",
+    "actions": ["Approve", "Edit", "Snooze", "Mark done"]
+  },
+  "uipath_case_stage": "Deadline Review",
+  "redaction_required": {
+    "required": true,
+    "warning": "Replace any real account numbers, collector references, statements, phone numbers, names, and exact email text with synthetic placeholders."
+  }
+}

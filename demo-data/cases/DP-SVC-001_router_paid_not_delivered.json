@@ -1,0 +1,88 @@
+{
+  "case_id": "DP-SVC-001",
+  "case_type": "service_delivery_billing_dispute",
+  "fake_company": "Example Home Connect",
+  "fake_sender": "Synthetic Fulfilment Escalations",
+  "source_label": "service_delivery_billing_dispute",
+  "priority": "high",
+  "current_stage": "rebuttal_or_followup",
+  "trigger_email_summary": "A fictional service provider charged for a router, but the router was not delivered and support has not provided delivery proof or a refund date.",
+  "timeline_events": [
+    {
+      "date": "2026-07-02",
+      "stage": "problem_event",
+      "summary": "Synthetic router order paid but not delivered. Redaction warning: do not store real addresses, receipts, tracking numbers, or support tickets."
+    },
+    {
+      "date": "2026-07-06",
+      "stage": "initial_complaint",
+      "summary": "Demo user asked for delivery proof or refund."
+    },
+    {
+      "date": "2026-07-13",
+      "stage": "company_response",
+      "summary": "Provider states the issue is under investigation without a delivery record or refund deadline."
+    }
+  ],
+  "extracted_deadlines": [
+    {
+      "date": "2026-07-20",
+      "type": "service_provider_followup_deadline",
+      "source_event": "company_response",
+      "action_required": "Request proof of delivery or refund confirmation.",
+      "confidence": "medium"
+    }
+  ],
+  "disputed_amounts": [
+    {
+      "amount": "ZAR 899.00",
+      "amount_type": "paid_hardware_not_delivered",
+      "status": "refund_or_delivery_pending",
+      "note": "Fictional hardware charge."
+    }
+  ],
+  "evidence_matrix": [
+    {
+      "item": "payment receipt placeholder",
+      "status": "redaction_required",
+      "why_it_matters": "Would prove payment was made."
+    },
+    {
+      "item": "delivery proof",
+      "status": "missing",
+      "why_it_matters": "Needed to show whether the router was delivered."
+    },
+    {
+      "item": "refund confirmation",
+      "status": "missing",
+      "why_it_matters": "Needed if delivery cannot be proven."
+    }
+  ],
+  "missing_evidence": [
+    "Delivery tracking proof",
+    "Refund approval or credit note",
+    "Clear resolution deadline"
+  ],
+  "company_response_gaps": [
+    "No delivery evidence supplied",
+    "No refund date supplied",
+    "Investigation response does not address the paid-not-delivered issue"
+  ],
+  "recommended_next_action": "Send a follow-up asking for delivery proof within a defined timeframe or immediate refund confirmation.",
+  "draft_reply_outline": [
+    "State that the router remains undelivered in the synthetic case.",
+    "Request delivery proof or refund confirmation.",
+    "Ask for a named resolution deadline in general terms.",
+    "Note that unresolved paid-not-delivered issue will be escalated."
+  ],
+  "telegram_card_preview": {
+    "title": "DP-SVC-001: Router paid not delivered",
+    "body": "High priority. Paid hardware not delivered; no proof/refund. Recommended: request delivery proof or refund deadline.",
+    "actions": ["Approve", "Edit", "Snooze", "Mark done"]
+  },
+  "uipath_case_stage": "Service Escalation Follow-up",
+  "redaction_required": {
+    "required": true,
+    "warning": "Replace real receipts, addresses, tracking numbers, support tickets, names, and exact provider text with synthetic placeholders."
+  }
+}

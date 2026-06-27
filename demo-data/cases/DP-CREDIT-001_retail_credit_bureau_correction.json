@@ -1,0 +1,88 @@
+{
+  "case_id": "DP-CREDIT-001",
+  "case_type": "retail_credit_bureau_dispute",
+  "fake_company": "Example Retail Credit",
+  "fake_sender": "Synthetic Credit Bureau Corrections Team",
+  "source_label": "retail_credit_bureau_dispute",
+  "priority": "medium",
+  "current_stage": "regulator_or_ombud_escalation",
+  "trigger_email_summary": "A fictional retail credit listing remains incorrect after a correction request, and the response does not confirm that bureau records were updated.",
+  "timeline_events": [
+    {
+      "date": "2026-06-20",
+      "stage": "problem_event",
+      "summary": "Synthetic credit bureau listing shows a stale retail account status. Redaction warning: do not store real bureau reports or ID numbers."
+    },
+    {
+      "date": "2026-06-25",
+      "stage": "initial_complaint",
+      "summary": "Demo user requested correction and supplied fictional proof of settlement."
+    },
+    {
+      "date": "2026-07-12",
+      "stage": "company_response",
+      "summary": "Retailer says the issue was reviewed but does not provide a bureau correction instruction or completion date."
+    }
+  ],
+  "extracted_deadlines": [
+    {
+      "date": "2026-07-26",
+      "type": "bureau_correction_followup_deadline",
+      "source_event": "company_response",
+      "action_required": "Escalate correction request and ask for bureau update proof.",
+      "confidence": "medium"
+    }
+  ],
+  "disputed_amounts": [
+    {
+      "amount": "ZAR 620.00",
+      "amount_type": "stale_listed_balance",
+      "status": "disputed_as_outdated",
+      "note": "Fictional stale balance."
+    }
+  ],
+  "evidence_matrix": [
+    {
+      "item": "credit report excerpt placeholder",
+      "status": "redaction_required",
+      "why_it_matters": "Would show the incorrect listing."
+    },
+    {
+      "item": "settlement confirmation placeholder",
+      "status": "redaction_required",
+      "why_it_matters": "Would prove the balance/status should change."
+    },
+    {
+      "item": "bureau correction instruction",
+      "status": "missing",
+      "why_it_matters": "Needed to prove the retailer instructed correction."
+    }
+  ],
+  "missing_evidence": [
+    "Written correction instruction to bureau",
+    "Updated bureau status confirmation",
+    "Reason stale balance remains visible"
+  ],
+  "company_response_gaps": [
+    "No bureau update proof",
+    "No correction completion date",
+    "No explanation for stale balance"
+  ],
+  "recommended_next_action": "Prepare a bureau correction escalation packet with the stale listing summary, synthetic settlement proof placeholder, and request for written correction confirmation.",
+  "draft_reply_outline": [
+    "Summarize the incorrect listing in synthetic terms.",
+    "Ask for written confirmation that the bureau was instructed to correct it.",
+    "Request a correction completion date.",
+    "State intended escalation to credit dispute channels if unresolved."
+  ],
+  "telegram_card_preview": {
+    "title": "DP-CREDIT-001: Retail bureau correction gap",
+    "body": "Medium priority. Listing remains stale; correction proof missing. Recommended: escalate correction packet.",
+    "actions": ["Approve", "Edit", "Snooze", "Mark done"]
+  },
+  "uipath_case_stage": "Credit Correction Escalation",
+  "redaction_required": {
+    "required": true,
+    "warning": "Replace real bureau reports, ID numbers, addresses, account numbers, settlement letters, and exact correspondence with synthetic summaries."
+  }
+}
