@@ -1,0 +1,32 @@
+# DisputePilot local/runtime files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node / frontend experiments
+node_modules/
+dist/
+build/
+coverage/
+
+# Logs, caches, OS/editor files
+*.log
+.cache/
+.DS_Store
+.vscode/
+.idea/
+
+# Runtime/private data guardrails
+*.sqlite
+*.sqlite3
+*.db
+private-data/
+real-data/
+exports/
+attachments/
