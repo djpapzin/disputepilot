@@ -77,8 +77,13 @@
   ],
   "telegram_card_preview": {
     "title": "DP-SVC-001: Router paid not delivered",
-    "body": "High priority. Paid hardware not delivered; no proof/refund. Recommended: request delivery proof or refund deadline.",
-    "actions": ["Approve", "Edit", "Snooze", "Mark done"]
+    "body": "High priority. Paid hardware not delivered; no proof/refund. Deadline 2026-07-20. Recommended: request delivery proof or refund deadline.",
+    "actions": [
+      "Approve",
+      "Edit",
+      "Snooze",
+      "Mark done"
+    ]
   },
   "uipath_case_stage": "Service Escalation Follow-up",
   "redaction_required": {

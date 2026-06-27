@@ -77,8 +77,13 @@
   ],
   "telegram_card_preview": {
     "title": "DP-GAM-001: Duplicate wager system gap",
-    "body": "Medium priority. Operator response lacks ledger and technical reconciliation. Recommended: request evidence and reversal basis.",
-    "actions": ["Approve", "Edit", "Snooze", "Mark done"]
+    "body": "Medium priority. Operator response lacks ledger and technical reconciliation. Deadline 2026-07-21. Recommended: request evidence and reversal basis.",
+    "actions": [
+      "Approve",
+      "Edit",
+      "Snooze",
+      "Mark done"
+    ]
   },
   "uipath_case_stage": "Response Gap Review",
   "redaction_required": {
