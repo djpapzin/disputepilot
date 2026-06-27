@@ -41,6 +41,21 @@ def test_telegram_preview_is_plain_preview_and_does_not_send():
     assert "Request Evidence" in card["buttons"]
 
 
+def test_deadline_bearing_telegram_previews_include_their_deadlines():
+    for case_id in ["DP-SVC-001", "DP-GAM-001", "DP-GAM-002", "DP-INS-001", "DP-CREDIT-001", "DP-DEBT-001"]:
+        case = load_case(case_id)
+        deadlines = case.get("extracted_deadlines") or []
+        if not deadlines:
+            continue
+
+        deadline = deadlines[0]["date"]
+        fixture_body = case["telegram_card_preview"]["body"]
+        preview_body = build_telegram_card_preview(case)["body"]
+
+        assert deadline in fixture_body
+        assert deadline in preview_body
+
+
 def test_uipath_preview_is_payload_preview_and_does_not_call_api():
     payload = build_uipath_case_payload_preview(load_case("DP-INS-001"))
 
@@ -63,6 +78,14 @@ def test_redaction_scanner_flags_sensitive_patterns_without_values():
     assert {"email_like", "phone_like", "long_digit_like", "secret_token_like"}.issubset(warning_types)
     assert all("demo@example" not in warning["message"] for warning in warnings)
     assert all("sk-" not in warning["message"] for warning in warnings)
+
+
+def test_redaction_scanner_flags_quoted_json_secret_keys():
+    payload = {key: "plain-text-value" for key in ["api_key", "token", "secret", "client_secret", "access_token"]}
+
+    warnings = scan_fixture_text(payload)
+
+    assert any(warning["type"] == "secret_token_like" for warning in warnings)
 
 
 def test_synthetic_fixtures_pass_redaction_scanner():

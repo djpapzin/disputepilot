@@ -10,7 +10,7 @@ EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 PHONE_RE = re.compile(r"(?<!\w)(?:\+?\d[\s().-]?){10,}(?!\w)")
 LONG_DIGIT_RE = re.compile(r"\b\d{8,}\b")
 SECRET_TOKEN_RE = re.compile(
-    r"(?i)(gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_.-]{8,}|xox[baprs]-[A-Za-z0-9-]{10,}|api[_-]?key\s*[:=]\s*[^\s]+|token\s*[:=]\s*[^\s]+|secret\s*[:=]\s*[^\s]+)"
+    r"(?i)(?:\"(?:api[_-]?key|token|secret|client_secret|access_token|refresh_token|private_key|secret_key)\"\s*:|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_.-]{8,}|xox[baprs]-[A-Za-z0-9-]{10,}|api[_-]?key\s*[:=]\s*[^\s]+|token\s*[:=]\s*[^\s]+|secret\s*[:=]\s*[^\s]+)"
 )
 
 
