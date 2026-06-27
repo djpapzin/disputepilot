@@ -40,7 +40,7 @@ Builds a clean chronological record from synthetic summaries:
 Tracks each proof item with:
 
 - item name;
-- status: available, missing, requested, redaction_required, or not_applicable;
+- status: available, available_synthetic_summary, missing, requested, redaction_required, or not_applicable;
 - why it matters;
 - safe synthetic description.
 
