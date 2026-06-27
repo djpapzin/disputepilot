@@ -77,8 +77,13 @@
   ],
   "telegram_card_preview": {
     "title": "DP-INS-001: Device claim repudiation",
-    "body": "High priority. Appeal window likely active. Recommended: request full repudiation basis and appeal deadline confirmation.",
-    "actions": ["Approve", "Edit", "Snooze", "Mark done"]
+    "body": "High priority. Appeal window likely active. Deadline 2026-07-29. Recommended: request full repudiation basis and appeal deadline confirmation.",
+    "actions": [
+      "Approve",
+      "Edit",
+      "Snooze",
+      "Mark done"
+    ]
   },
   "uipath_case_stage": "Rebuttal Drafting",
   "redaction_required": {

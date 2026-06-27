@@ -77,8 +77,13 @@
   ],
   "telegram_card_preview": {
     "title": "DP-CREDIT-001: Retail bureau correction gap",
-    "body": "Medium priority. Listing remains stale; correction proof missing. Recommended: escalate correction packet.",
-    "actions": ["Approve", "Edit", "Snooze", "Mark done"]
+    "body": "Medium priority. Listing remains stale; correction proof missing. Deadline 2026-07-26. Recommended: escalate correction packet.",
+    "actions": [
+      "Approve",
+      "Edit",
+      "Snooze",
+      "Mark done"
+    ]
   },
   "uipath_case_stage": "Credit Correction Escalation",
   "redaction_required": {

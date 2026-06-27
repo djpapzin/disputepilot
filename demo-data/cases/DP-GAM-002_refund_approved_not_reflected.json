@@ -77,8 +77,13 @@
   ],
   "telegram_card_preview": {
     "title": "DP-GAM-002: Approved refund not reflected",
-    "body": "High priority. Refund approved but not credited. Recommended: request processing proof and ledger reconciliation.",
-    "actions": ["Approve", "Edit", "Snooze", "Mark done"]
+    "body": "High priority. Refund approved but not credited. Deadline 2026-07-18. Recommended: request processing proof and ledger reconciliation.",
+    "actions": [
+      "Approve",
+      "Edit",
+      "Snooze",
+      "Mark done"
+    ]
   },
   "uipath_case_stage": "Refund Deadline Tracking",
   "redaction_required": {
