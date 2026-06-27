@@ -47,6 +47,10 @@ Hermes and Codex are AI coding/build tools used to create this repository and th
 
 No real personal emails, real dispute data, account numbers, IDs, private email addresses, or private attachments are included in this repository. Demo fixtures are synthetic and must stay synthetic.
 
+## Agent status reporting
+
+Hermes task updates for this repository must use GitHub as the canonical record. See [docs/agent-status-contract.md](docs/agent-status-contract.md) for the required branch, PR, final comment, privacy, and Telegram-topic rules.
+
 ## Repository status
 
 This bootstrap stops at repository setup and product/spec documentation. The full app will be designed next.
