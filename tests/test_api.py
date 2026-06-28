@@ -102,6 +102,9 @@ def test_analyze_case_endpoint():
     assert payload["workflow_handoff_preview"]["orchestration_layer"] == "UiPath Automation Cloud / Maestro Case"
     assert payload["workflow_handoff_preview"]["approval_options"] == ["Approve", "Edit", "Snooze", "Mark done"]
     assert payload["workflow_handoff_preview"]["deadline"] == "2026-07-21"
+    assert payload["telegram_approval_preview"]["preview_only"] is True
+    assert payload["telegram_approval_preview"]["reply_channel"] == "Telegram topic/thread"
+    assert payload["telegram_approval_preview"]["approval_buttons"] == ["Approve", "Edit", "Snooze", "Mark done"]
 
 
 def test_demo_endpoint_returns_compact_summary():

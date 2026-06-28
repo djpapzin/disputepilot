@@ -54,6 +54,20 @@ class WorkflowHandoffPreview(BaseModel):
     summary: str
 
 
+class TelegramApprovalPreview(BaseModel):
+    preview_only: bool = True
+    send_enabled: bool = False
+    reply_channel: str
+    case_id: str
+    case_type: str
+    priority: str
+    deadline: str | None = None
+    approval_buttons: list[str]
+    response_prompt: str
+    escalation_rule: str
+    buttons: list[str] = Field(default_factory=list)
+
+
 class RedactionScanResult(BaseModel):
     warning_count: int
     warnings: list[RedactionWarning]
@@ -76,6 +90,7 @@ class CaseIntelligence(BaseModel):
     telegram_card_preview: dict[str, Any]
     uipath_case_payload_preview: dict[str, Any]
     workflow_handoff_preview: dict[str, Any]
+    telegram_approval_preview: dict[str, Any]
     redaction_scan: dict[str, Any]
 
 
