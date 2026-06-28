@@ -98,7 +98,7 @@ curl http://127.0.0.1:8000/demo
 - `/health` confirms demo mode and shows that Gmail, UiPath, and Telegram sending are disabled.
 - `/cases` lists synthetic fixtures only.
 - `/cases/{case_id}` returns the raw synthetic fixture.
-- `/cases/{case_id}/analyze` returns normalized case intelligence plus Telegram and UiPath preview payloads.
+- `/cases/{case_id}/analyze` returns normalized case intelligence plus Telegram, UiPath, and workflow handoff preview payloads.
 - `/demo` returns a compact summary across all synthetic cases.
 
 No Gmail, UiPath, or Telegram integrations are implemented in this phase. Telegram cards and UiPath payloads are previews only.

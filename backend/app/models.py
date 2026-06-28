@@ -37,6 +37,23 @@ class UiPathCasePayloadPreview(BaseModel):
     recommended_next_action: str
 
 
+class WorkflowHandoffPreview(BaseModel):
+    preview_only: bool = True
+    orchestration_layer: str
+    integration_enabled: bool = False
+    case_id: str
+    case_type: str
+    case_title: str
+    current_stage: str
+    uipath_case_stage: str
+    priority: str
+    deadline: str | None = None
+    approval_options: list[str]
+    workflow_steps: list[str] = Field(default_factory=list)
+    next_action: str
+    summary: str
+
+
 class RedactionScanResult(BaseModel):
     warning_count: int
     warnings: list[RedactionWarning]
@@ -58,6 +75,7 @@ class CaseIntelligence(BaseModel):
     redaction_required: dict[str, Any]
     telegram_card_preview: dict[str, Any]
     uipath_case_payload_preview: dict[str, Any]
+    workflow_handoff_preview: dict[str, Any]
     redaction_scan: dict[str, Any]
 
 

@@ -5,6 +5,7 @@ from typing import Any
 from backend.app.redaction import scan_fixture
 from backend.app.telegram_preview import build_telegram_card_preview
 from backend.app.uipath_preview import build_uipath_case_payload_preview
+from backend.app.workflow_preview import build_workflow_handoff_preview
 
 PIPELINE_FIELDS = [
     "case_id",
@@ -29,5 +30,6 @@ def analyze_case(case: dict[str, Any]) -> dict[str, Any]:
     normalized = {field: case[field] for field in PIPELINE_FIELDS}
     normalized["telegram_card_preview"] = build_telegram_card_preview(case)
     normalized["uipath_case_payload_preview"] = build_uipath_case_payload_preview(case)
+    normalized["workflow_handoff_preview"] = build_workflow_handoff_preview(case)
     normalized["redaction_scan"] = scan_fixture(case)
     return normalized

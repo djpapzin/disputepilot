@@ -98,6 +98,10 @@ def test_analyze_case_endpoint():
     assert payload["case_id"] == "DP-GAM-001"
     assert payload["telegram_card_preview"]["preview_only"] is True
     assert payload["uipath_case_payload_preview"]["preview_only"] is True
+    assert payload["workflow_handoff_preview"]["preview_only"] is True
+    assert payload["workflow_handoff_preview"]["orchestration_layer"] == "UiPath Automation Cloud / Maestro Case"
+    assert payload["workflow_handoff_preview"]["approval_options"] == ["Approve", "Edit", "Snooze", "Mark done"]
+    assert payload["workflow_handoff_preview"]["deadline"] == "2026-07-21"
 
 
 def test_demo_endpoint_returns_compact_summary():
