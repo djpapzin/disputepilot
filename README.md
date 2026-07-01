@@ -53,6 +53,10 @@ This repository contains fictionalized fixtures and generalized dispute-intellig
 
 Where a real case would require supporting evidence, the docs and JSON fixtures use synthetic summaries plus redaction warnings. Any future demo or integration must keep private evidence outside the public repo unless it has been explicitly redacted and approved for use.
 
+## Agent status reporting
+
+Hermes task updates for this repository must use GitHub as the canonical record. See [docs/agent-status-contract.md](docs/agent-status-contract.md) for the required branch, PR, final comment, privacy, and Telegram-topic rules.
+
 ## Repository status
 
 This bootstrap stops at repository setup and product/spec documentation. The full app will be designed next.
