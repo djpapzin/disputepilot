@@ -1,0 +1,101 @@
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field
+
+
+class RedactionWarning(BaseModel):
+    type: str
+    message: str
+
+
+class CaseListItem(BaseModel):
+    case_id: str
+    case_type: str
+    priority: str
+    current_stage: str
+    fake_company: str
+    source_label: str
+
+
+class TelegramCardPreview(BaseModel):
+    preview_only: bool = True
+    send_enabled: bool = False
+    title: str
+    body: str
+    buttons: list[str]
+
+
+class UiPathCasePayloadPreview(BaseModel):
+    preview_only: bool = True
+    integration_enabled: bool = False
+    case_title: str
+    case_type: str
+    stage: str
+    priority: str
+    deadline: str | None = None
+    evidence_gaps: list[str] = Field(default_factory=list)
+    recommended_next_action: str
+
+
+class WorkflowHandoffPreview(BaseModel):
+    preview_only: bool = True
+    orchestration_layer: str
+    integration_enabled: bool = False
+    case_id: str
+    case_type: str
+    case_title: str
+    current_stage: str
+    uipath_case_stage: str
+    priority: str
+    deadline: str | None = None
+    approval_options: list[str]
+    workflow_steps: list[str] = Field(default_factory=list)
+    next_action: str
+    summary: str
+
+
+class TelegramApprovalPreview(BaseModel):
+    preview_only: bool = True
+    send_enabled: bool = False
+    reply_channel: str
+    case_id: str
+    case_type: str
+    priority: str
+    deadline: str | None = None
+    approval_buttons: list[str]
+    response_prompt: str
+    escalation_rule: str
+    buttons: list[str] = Field(default_factory=list)
+
+
+class RedactionScanResult(BaseModel):
+    warning_count: int
+    warnings: list[RedactionWarning]
+
+
+class CaseIntelligence(BaseModel):
+    case_id: str
+    case_type: str
+    priority: str
+    current_stage: str
+    timeline_events: list[dict[str, Any]]
+    extracted_deadlines: list[dict[str, Any]]
+    disputed_amounts: list[dict[str, Any]]
+    evidence_matrix: list[dict[str, Any]]
+    missing_evidence: list[str]
+    company_response_gaps: list[str]
+    recommended_next_action: str
+    draft_reply_outline: list[str]
+    redaction_required: dict[str, Any]
+    telegram_card_preview: dict[str, Any]
+    uipath_case_payload_preview: dict[str, Any]
+    workflow_handoff_preview: dict[str, Any]
+    telegram_approval_preview: dict[str, Any]
+    redaction_scan: dict[str, Any]
+
+
+class HealthResponse(BaseModel):
+    status: Literal["ok"]
+    demo_mode: bool
+    app: str
+    integrations: dict[str, bool]

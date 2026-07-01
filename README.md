@@ -53,10 +53,60 @@ This repository contains fictionalized fixtures and generalized dispute-intellig
 
 Where a real case would require supporting evidence, the docs and JSON fixtures use synthetic summaries plus redaction warnings. Any future demo or integration must keep private evidence outside the public repo unless it has been explicitly redacted and approved for use.
 
+## Phase 3 API skeleton
+
+Phase 3 adds a minimal runnable FastAPI app skeleton for synthetic demos only. It loads the fictional JSON fixtures in `demo-data/cases/`, runs a placeholder case intelligence pipeline, and returns Telegram/UiPath preview payloads without calling any external service.
+
+### Install
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+```
+
+If editable installs are not needed, install the runtime dependencies directly:
+
+```bash
+python -m pip install fastapi 'uvicorn[standard]' pytest httpx
+```
+
+### Run the API
+
+```bash
+uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+### Run tests
+
+```bash
+pytest -q
+```
+
+### Example curl commands
+
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/cases
+curl http://127.0.0.1:8000/cases/DP-DEBT-001
+curl -X POST http://127.0.0.1:8000/cases/DP-DEBT-001/analyze
+curl http://127.0.0.1:8000/demo
+```
+
+### Demo explanation
+
+- `/health` confirms demo mode and shows that Gmail, UiPath, and Telegram sending are disabled.
+- `/cases` lists synthetic fixtures only.
+- `/cases/{case_id}` returns the raw synthetic fixture.
+- `/cases/{case_id}/analyze` returns normalized case intelligence plus Telegram, UiPath, workflow handoff, and Telegram approval preview payloads.
+- `/demo` returns a compact summary across all synthetic cases.
+
+No Gmail, UiPath, or Telegram integrations are implemented in this phase. Telegram cards and UiPath payloads are previews only.
+
 ## Agent status reporting
 
 Hermes task updates for this repository must use GitHub as the canonical record. See [docs/agent-status-contract.md](docs/agent-status-contract.md) for the required branch, PR, final comment, privacy, and Telegram-topic rules.
 
 ## Repository status
 
-This bootstrap stops at repository setup and product/spec documentation. The full app will be designed next.
+This repo currently contains product/spec docs, synthetic fixtures, and the Phase 3 FastAPI skeleton. The full integration app will be designed later.
