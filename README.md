@@ -33,11 +33,19 @@ The MVP approval options are:
 
 ## MVP demo cases
 
-The repository contains only synthetic demo cases:
+The repository contains only synthetic demo cases (demo fixtures only):
 
-1. Debt dispute deadline.
+1. Telecom debt collector dispute with deadline pressure.
 2. Service delivery or billing escalation.
 3. Job or opportunity reply needed.
+4. Retail credit bureau correction.
+5. Gambling operator deposit/ledger refund disputes.
+6. Device insurance repudiation.
+
+## Submission support
+
+- Runbook: [docs/submission-ready-runbook.md](docs/submission-ready-runbook.md)
+- Devpost draft copy: [docs/devpost-draft.md](docs/devpost-draft.md)
 
 ## Build-tool disclosure
 
