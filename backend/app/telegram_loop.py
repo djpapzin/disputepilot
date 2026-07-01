@@ -1,0 +1,166 @@
+from __future__ import annotations
+
+from typing import Any
+from urllib import error, request
+import json
+
+from backend.app.config import (
+    TELEGRAM_ALLOWED_USER_IDS,
+    TELEGRAM_APPROVAL_CHAT_ID,
+    TELEGRAM_APPROVAL_THREAD_ID,
+    TELEGRAM_BOT_TOKEN,
+    TELEGRAM_SEND_ENABLED,
+)
+from backend.app.telegram_preview import APPROVAL_BUTTONS
+
+
+CALLBACK_PREFIX = "disputepilot"
+
+
+class TelegramLoopError(RuntimeError):
+    """Raised for Telegram loop and callback handling failures."""
+
+
+class TelegramLoopDisabledError(TelegramLoopError):
+    """Raised when outbound Telegram actions are disabled by config."""
+
+
+class TelegramLoopConfigError(TelegramLoopError):
+    """Raised when Telegram configuration is incomplete for sending."""
+
+
+ACTION_TO_CALLBACK = {label: label.lower().replace(" ", "_") for label in APPROVAL_BUTTONS}
+
+
+def _telegram_api_base() -> str:
+    return f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+
+
+def _as_int(value: str) -> int | None:
+    if not value:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def _coerce_chat_id(chat_id: str) -> int | str:
+    return _as_int(chat_id) or chat_id
+
+
+def _message_text(case: dict[str, Any]) -> str:
+    deadline = None
+    if case.get("extracted_deadlines"):
+        deadline = case["extracted_deadlines"][0].get("date")
+
+    body = [
+        f"{case['case_id']}: {case['case_type']}",
+        f"Priority: {case.get('priority', 'unknown')}",
+        f"Stage: {case.get('current_stage', 'unknown')}",
+        f"Next action: {case.get('recommended_next_action', 'Review manually')}",
+    ]
+    if deadline:
+        body.append(f"Deadline: {deadline}")
+
+    return "\n".join(body)
+
+
+def build_callback_payload(case_id: str, action: str) -> str:
+    return f"{CALLBACK_PREFIX}:{case_id}:{action}"
+
+
+def build_telegram_approval_payload(case: dict[str, Any]) -> dict[str, Any]:
+    approval_markup = {
+        "inline_keyboard": [
+            [
+                {
+                    "text": label,
+                    "callback_data": build_callback_payload(case["case_id"], action),
+                }
+                for label, action in ACTION_TO_CALLBACK.items()
+            ]
+        ]
+    }
+
+    payload: dict[str, Any] = {
+        "chat_id": _coerce_chat_id(TELEGRAM_APPROVAL_CHAT_ID),
+        "text": _message_text(case),
+        "reply_markup": approval_markup,
+    }
+
+    if TELEGRAM_APPROVAL_THREAD_ID:
+        payload["message_thread_id"] = _coerce_chat_id(TELEGRAM_APPROVAL_THREAD_ID)
+
+    return payload
+
+
+def _post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    encoded = json.dumps(payload).encode("utf-8")
+    req = request.Request(url, data=encoded, method="POST", headers={"Content-Type": "application/json"})
+    with request.urlopen(req, timeout=5) as response:
+        body = response.read().decode("utf-8")
+        parsed = json.loads(body)
+        if not isinstance(parsed, dict):
+            raise TelegramLoopError("Unexpected Telegram response format.")
+        return parsed
+
+
+def send_case_for_telegram_approval(case: dict[str, Any]) -> dict[str, Any]:
+    if not TELEGRAM_SEND_ENABLED:
+        raise TelegramLoopDisabledError("Telegram send disabled. Set DISPUTEPILOT_TELEGRAM_SEND_ENABLED=true.")
+
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_APPROVAL_CHAT_ID:
+        raise TelegramLoopConfigError("TELEGRAM_BOT_TOKEN and TELEGRAM_APPROVAL_CHAT_ID are required to send approvals.")
+
+    payload = build_telegram_approval_payload(case)
+    try:
+        result = _post_json(f"{_telegram_api_base()}/sendMessage", payload)
+    except error.HTTPError as exc:
+        raise TelegramLoopError(f"Telegram API returned HTTP {exc.code}.") from exc
+    except error.URLError as exc:
+        raise TelegramLoopError(f"Telegram API request failed: {exc.reason}") from exc
+
+    message_id = None
+    if isinstance(result.get("result"), dict):
+        message_id = result["result"].get("message_id")
+
+    return {
+        "status": "telegram_approval_dispatched",
+        "message_id": message_id,
+        "chat_id": TELEGRAM_APPROVAL_CHAT_ID,
+        "thread_id": TELEGRAM_APPROVAL_THREAD_ID or None,
+        "telegram_response": result,
+    }
+
+
+def parse_telegram_update(payload: dict[str, Any]) -> dict[str, Any]:
+    callback_query = payload.get("callback_query")
+    if not isinstance(callback_query, dict):
+        raise TelegramLoopError("Expected a callback_query payload.")
+
+    data = callback_query.get("data")
+    if not isinstance(data, str):
+        raise TelegramLoopError("Missing callback data.")
+
+    parts = data.split(":")
+    if len(parts) != 3 or parts[0] != CALLBACK_PREFIX:
+        raise TelegramLoopError("Unsupported callback payload format.")
+
+    _, case_id, action = parts
+    allowed_actions = set(ACTION_TO_CALLBACK.values())
+    if action not in allowed_actions:
+        raise TelegramLoopError(f"Unsupported action '{action}'.")
+
+    if TELEGRAM_ALLOWED_USER_IDS:
+        sender = callback_query.get("from", {})
+        sender_id = sender.get("id")
+        if not isinstance(sender_id, int) or sender_id not in TELEGRAM_ALLOWED_USER_IDS:
+            raise TelegramLoopConfigError("Sender is not authorized for this Telegram bot.")
+
+    return {
+        "case_id": case_id,
+        "action": action,
+        "callback_query_id": callback_query.get("id"),
+        "sender": callback_query.get("from", {}),
+    }
