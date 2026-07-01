@@ -24,7 +24,7 @@ DisputePilot currently includes the **Phase 3 synthetic workflow skeleton**:
   - `workflow_handoff_preview` field in `/analyze`
   - `telegram_approval_preview` field in `/analyze`
 
-> Actual external integrations (UiPath API, Telegram bot send, live Gmail polling) are intentionally stubbed as previews in this synthetic phase.
+> The `/handoff` route is now integration-aware (safe when disabled, live when configured).
 
 ## 2) How to run locally (quick)
 ```bash

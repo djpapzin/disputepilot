@@ -98,18 +98,20 @@ curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/cases
 curl http://127.0.0.1:8000/cases/DP-DEBT-001
 curl -X POST http://127.0.0.1:8000/cases/DP-DEBT-001/analyze
+curl -X POST http://127.0.0.1:8000/cases/DP-DEBT-001/handoff
 curl http://127.0.0.1:8000/demo
 ```
 
 ### Demo explanation
 
-- `/health` confirms demo mode and shows that Gmail, UiPath, and Telegram sending are disabled.
+- `/health` confirms demo mode and shows the current integration flags.
 - `/cases` lists synthetic fixtures only.
 - `/cases/{case_id}` returns the raw synthetic fixture.
 - `/cases/{case_id}/analyze` returns normalized case intelligence plus Telegram, UiPath, workflow handoff, and Telegram approval preview payloads.
+- `/cases/{case_id}/handoff` sends an optional live UiPath handoff when `uipath` integration flags are enabled; otherwise it returns a handoff preview payload.
 - `/demo` returns a compact summary across all synthetic cases.
 
-No Gmail, UiPath, or Telegram integrations are implemented in this phase. Telegram cards and UiPath payloads are previews only.
+The `/cases/{case_id}/handoff` route is integration-ready and uses optional `UIPATH_WEBHOOK_URL`/`UIPATH_INTEGRATION_ENABLED` settings; when disabled it is intentionally safe and preview-only.
 
 ## Agent status reporting
 
