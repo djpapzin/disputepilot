@@ -103,6 +103,10 @@ curl http://127.0.0.1:8000/demo
 
 No Gmail, UiPath, or Telegram integrations are implemented in this phase. Telegram cards and UiPath payloads are previews only.
 
+## Agent status reporting
+
+Hermes task updates for this repository must use GitHub as the canonical record. See [docs/agent-status-contract.md](docs/agent-status-contract.md) for the required branch, PR, final comment, privacy, and Telegram-topic rules.
+
 ## Repository status
 
 This repo currently contains product/spec docs, synthetic fixtures, and the Phase 3 FastAPI skeleton. The full integration app will be designed later.
