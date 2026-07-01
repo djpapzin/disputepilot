@@ -47,6 +47,12 @@ Hermes and Codex are AI coding/build tools used to create this repository and th
 
 No real personal emails, real dispute data, account numbers, IDs, private email addresses, or private attachments are included in this repository. Demo fixtures are synthetic and must stay synthetic.
 
+## Synthetic demo data only
+
+This repository contains fictionalized fixtures and generalized dispute-intelligence patterns only. Real dispute emails, Gmail threads, statements, screenshots, attachments, account numbers, phone numbers, ID numbers, case references, private names, and exact private wording are not included.
+
+Where a real case would require supporting evidence, the docs and JSON fixtures use synthetic summaries plus redaction warnings. Any future demo or integration must keep private evidence outside the public repo unless it has been explicitly redacted and approved for use.
+
 ## Agent status reporting
 
 Hermes task updates for this repository must use GitHub as the canonical record. See [docs/agent-status-contract.md](docs/agent-status-contract.md) for the required branch, PR, final comment, privacy, and Telegram-topic rules.

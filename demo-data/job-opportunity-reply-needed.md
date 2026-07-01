@@ -1,9 +1,9 @@
-# Synthetic demo email: Job / opportunity reply needed
+# Synthetic demo message: Job / opportunity reply needed
 
-> This fixture is synthetic. It does not represent a real recruiter, company, job, or opportunity.
+> This fixture is synthetic. It does not represent a real recruiter, company, job, or opportunity. It intentionally avoids private email addresses, phone numbers, case numbers, attachments, and exact real wording.
 
-From: opportunities@example-careers-demo.test  
-To: demo.user@example.test  
+From: Synthetic Careers Team  
+To: Demo User Placeholder  
 Subject: Interview slot confirmation needed
 
 Hello,
@@ -19,3 +19,4 @@ Example Careers Demo Team
 - Deadline: 2026-07-31
 - Risk: medium
 - Suggested action: draft confirmation or reschedule reply for human approval
+- Redaction warning: real recruiter names, private email addresses, phone numbers, attachments, and exact correspondence must be replaced with synthetic summaries.

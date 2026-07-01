@@ -1,0 +1,93 @@
+{
+  "case_id": "DP-GAM-002",
+  "case_type": "gambling_operator_system_or_refund_dispute",
+  "fake_company": "Example Odds Wallet",
+  "fake_sender": "Synthetic Refund Support Team",
+  "source_label": "gambling_operator_system_or_refund_dispute",
+  "priority": "high",
+  "current_stage": "deadline_tracking",
+  "trigger_email_summary": "A fictional operator states that a refund was approved, but the demo wallet balance still does not reflect the credit after the stated processing window.",
+  "timeline_events": [
+    {
+      "date": "2026-07-05",
+      "stage": "problem_event",
+      "summary": "Synthetic refund request opened after a failed transaction. Redaction warning: real wallet screenshots and transaction references must not be stored."
+    },
+    {
+      "date": "2026-07-09",
+      "stage": "company_acknowledgement",
+      "summary": "Operator confirms the fictional refund was approved."
+    },
+    {
+      "date": "2026-07-16",
+      "stage": "response_gap_detection",
+      "summary": "Refund still not reflected after the promised processing window."
+    }
+  ],
+  "extracted_deadlines": [
+    {
+      "date": "2026-07-18",
+      "type": "refund_reflection_chase_deadline",
+      "source_event": "company_acknowledgement",
+      "action_required": "Request refund proof and wallet reconciliation.",
+      "confidence": "high"
+    }
+  ],
+  "disputed_amounts": [
+    {
+      "amount": "ZAR 300.00",
+      "amount_type": "approved_refund_not_reflected",
+      "status": "approved_but_uncredited",
+      "note": "Fictional refund amount."
+    }
+  ],
+  "evidence_matrix": [
+    {
+      "item": "refund approval summary",
+      "status": "available_synthetic_summary",
+      "why_it_matters": "Shows refund was approved."
+    },
+    {
+      "item": "wallet balance snapshot placeholder",
+      "status": "redaction_required",
+      "why_it_matters": "Would show that the credit has not reflected."
+    },
+    {
+      "item": "operator refund proof",
+      "status": "missing",
+      "why_it_matters": "Needed to prove whether the refund was actually processed."
+    }
+  ],
+  "missing_evidence": [
+    "Refund transaction proof",
+    "Wallet ledger before and after approval",
+    "Expected reflection date confirmation"
+  ],
+  "company_response_gaps": [
+    "Approval given but no proof of credit",
+    "No ledger reconciliation",
+    "No revised reflection deadline"
+  ],
+  "recommended_next_action": "Request refund proof, wallet ledger reconciliation, and a firm reflection date; escalate if not reflected by the chase deadline.",
+  "draft_reply_outline": [
+    "Reference the synthetic refund approval date.",
+    "State that the credit is not reflected in the demo wallet summary.",
+    "Request processing proof and ledger reconciliation.",
+    "Ask for final reflection date or escalation path."
+  ],
+  "telegram_card_preview": {
+    "title": "DP-GAM-002: Approved refund not reflected",
+    "body": "High priority. Refund approved but not credited. Deadline 2026-07-18. Recommended: request processing proof and ledger reconciliation.",
+    "actions": [
+      "Approve",
+      "Edit",
+      "Snooze",
+      "Mark done"
+    ]
+  },
+  "uipath_case_stage": "Refund Deadline Tracking",
+  "redaction_required": {
+    "required": true,
+    "warning": "Replace real wallet screenshots, transaction IDs, operator references, account names, and exact support text with synthetic summaries."
+  }
+}

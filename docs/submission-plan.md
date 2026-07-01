@@ -50,5 +50,5 @@ Hermes and Codex are build tools only and must not be presented as the submitted
 
 - Keep repo public before submission.
 - Keep all examples synthetic.
-- Do not include real personal emails, real dispute names, Telkom/NuDebt/Afrihost/Ackermans data, account numbers, IDs, or private email addresses.
+- Do not include real personal emails, real dispute names, named real company dispute data, account numbers, IDs, or private email addresses.
 - Do not commit `.env` or secrets.

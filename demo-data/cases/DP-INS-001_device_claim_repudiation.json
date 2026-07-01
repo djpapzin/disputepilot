@@ -1,0 +1,93 @@
+{
+  "case_id": "DP-INS-001",
+  "case_type": "cellphone_insurance_repudiation",
+  "fake_company": "Example Device Cover",
+  "fake_sender": "Synthetic Claims Appeals Team",
+  "source_label": "cellphone_insurance_repudiation",
+  "priority": "high",
+  "current_stage": "rebuttal_or_followup",
+  "trigger_email_summary": "A fictional insurer repudiates a device claim using a broad exclusion reason and does not clearly explain the policy clause or appeal deadline.",
+  "timeline_events": [
+    {
+      "date": "2026-06-28",
+      "stage": "problem_event",
+      "summary": "Synthetic device incident reported. Redaction warning: never store real device identifiers, incident reports, or claim documents."
+    },
+    {
+      "date": "2026-07-03",
+      "stage": "company_acknowledgement",
+      "summary": "Insurer acknowledged the fictional claim and requested supporting documents."
+    },
+    {
+      "date": "2026-07-15",
+      "stage": "company_response",
+      "summary": "Insurer rejected the claim with a generic exclusion summary."
+    }
+  ],
+  "extracted_deadlines": [
+    {
+      "date": "2026-07-29",
+      "type": "appeal_deadline",
+      "source_event": "company_response",
+      "action_required": "Submit appeal or request full repudiation basis.",
+      "confidence": "medium"
+    }
+  ],
+  "disputed_amounts": [
+    {
+      "amount": "ZAR 6800.00",
+      "amount_type": "estimated_device_replacement_value",
+      "status": "fictional_estimate",
+      "note": "Demo amount only; not based on real policy data."
+    }
+  ],
+  "evidence_matrix": [
+    {
+      "item": "policy schedule placeholder",
+      "status": "redaction_required",
+      "why_it_matters": "Needed to verify coverage and exclusions."
+    },
+    {
+      "item": "repudiation letter summary",
+      "status": "available_synthetic_summary",
+      "why_it_matters": "Shows unsupported rejection reason."
+    },
+    {
+      "item": "appeal instructions",
+      "status": "missing",
+      "why_it_matters": "Needed to preserve appeal rights."
+    }
+  ],
+  "missing_evidence": [
+    "Exact policy exclusion relied on",
+    "Assessment notes or claim investigation summary",
+    "Clear appeal process and deadline"
+  ],
+  "company_response_gaps": [
+    "Repudiation reason is too generic",
+    "Policy clause not clearly mapped to incident facts",
+    "Appeal process is incomplete"
+  ],
+  "recommended_next_action": "Draft an appeal request asking for the full repudiation basis, clause mapping, assessment notes, and confirmation of the appeal deadline.",
+  "draft_reply_outline": [
+    "Acknowledge receipt of the repudiation.",
+    "Request the exact policy clause and factual basis.",
+    "Ask for claim assessment notes and missing-document list.",
+    "Reserve right to escalate if appeal information is not supplied."
+  ],
+  "telegram_card_preview": {
+    "title": "DP-INS-001: Device claim repudiation",
+    "body": "High priority. Appeal window likely active. Deadline 2026-07-29. Recommended: request full repudiation basis and appeal deadline confirmation.",
+    "actions": [
+      "Approve",
+      "Edit",
+      "Snooze",
+      "Mark done"
+    ]
+  },
+  "uipath_case_stage": "Rebuttal Drafting",
+  "redaction_required": {
+    "required": true,
+    "warning": "Replace real policy numbers, claim references, device IDs, incident reports, names, and exact insurer wording with synthetic summaries."
+  }
+}
