@@ -38,7 +38,7 @@ def test_telegram_preview_is_plain_preview_and_does_not_send():
 
     assert card["preview_only"] is True
     assert card["send_enabled"] is False
-    assert "Request Evidence" in card["buttons"]
+    assert "Escalate" in card["buttons"]
 
 
 def test_deadline_bearing_telegram_previews_include_their_deadlines():

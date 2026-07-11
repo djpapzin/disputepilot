@@ -101,7 +101,7 @@ curl -X POST http://127.0.0.1:8000/cases/DP-DEBT-001/analyze
 curl -X POST http://127.0.0.1:8000/cases/DP-DEBT-001/handoff
 curl -X POST http://127.0.0.1:8000/cases/DP-DEBT-001/telegram/notify
 curl -X POST http://127.0.0.1:8000/telegram/updates -H 'Content-Type: application/json' -d '{"callback_query":{"id":"cb-1","from":{"id":123456},"data":"disputepilot:DP-DEBT-001:approve_draft"}}'
-curl http://127.0.0.1:8000/demo
+curl http://127.0.0.1:8000/cases/DP-DEBT-001/telegram/audit-history
 ```
 
 ### Demo explanation
@@ -111,6 +111,9 @@ curl http://127.0.0.1:8000/demo
 - `/cases/{case_id}` returns the raw synthetic fixture.
 - `/cases/{case_id}/analyze` returns normalized case intelligence plus Telegram, UiPath, workflow handoff, and Telegram approval preview payloads.
 - `/cases/{case_id}/handoff` sends an optional live UiPath handoff when `uipath` integration flags are enabled; otherwise it returns a handoff preview payload.
+- `/cases/{case_id}/telegram/notify` sends an optional live Telegram approval card when send is enabled; otherwise it returns a preview payload.
+- `/telegram/updates` parses, validates, and persists Telegram callback actions for the synthetic case approval workflow.
+- `/cases/{case_id}/telegram/audit-history` returns the stored Telegram callback audit trail for a case.
 - `/demo` returns a compact summary across all synthetic cases.
 
 The `/cases/{case_id}/handoff` route is integration-ready and uses optional `UIPATH_WEBHOOK_URL`/`UIPATH_INTEGRATION_ENABLED` settings; when disabled it is intentionally safe and preview-only.

@@ -14,6 +14,10 @@ from backend.app.telegram_loop import (
     TelegramLoopConfigError,
     TelegramLoopDisabledError,
     TelegramLoopError,
+    TelegramCallbackTransitionError,
+    build_callback_audit_response,
+    current_case_state_or_default,
+    get_telegram_callback_audit_store,
     parse_telegram_update,
     send_case_for_telegram_approval,
 )
@@ -150,11 +154,58 @@ def telegram_notify_case_endpoint(case_id: str) -> object:
 @app.post("/telegram/updates", response_model=None)
 def telegram_callback_updates(update: dict[str, Any]) -> dict[str, Any]:
     try:
-        return parse_telegram_update(update)
+        parsed = parse_telegram_update(update)
+        case = load_case(parsed["case_id"], _fixture_dir())
+        store = get_telegram_callback_audit_store()
+        current_state = current_case_state_or_default(store, parsed["case_id"])
+        record = store.record_callback(
+            case_id=parsed["case_id"],
+            action=parsed["action"],
+            callback_query_id=parsed["callback_query_id"],
+            authorized_sender_id=parsed["authorized_sender_id"],
+            previous_case_state=current_state,
+        )
+        return {
+            **build_callback_audit_response(record),
+            "case_exists": True,
+            "synthetic_case_summary": {
+                "case_id": case["case_id"],
+                "case_type": case["case_type"],
+                "current_stage": case.get("current_stage"),
+                "priority": case.get("priority"),
+            },
+        }
+    except CaseNotFoundError as exc:
+        raise _case_not_found(exc) from exc
+    except TelegramCallbackTransitionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except TelegramLoopConfigError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except TelegramLoopError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/cases/{case_id}/telegram/audit-history")
+def telegram_callback_audit_history(case_id: str) -> dict[str, Any]:
+    try:
+        case = load_case(case_id, _fixture_dir())
+        store = get_telegram_callback_audit_store()
+        history = store.get_case_history(case_id)
+        current_state = store.get_current_case_state(case_id) or current_case_state_or_default(store, case_id)
+        return {
+            "case_id": case_id,
+            "case_exists": True,
+            "current_case_state": current_state,
+            "history_count": len(history),
+            "history": history,
+            "case_summary": {
+                "case_type": case["case_type"],
+                "current_stage": case.get("current_stage"),
+                "priority": case.get("priority"),
+            },
+        }
+    except CaseNotFoundError as exc:
+        raise _case_not_found(exc) from exc
 
 
 @app.get("/demo")

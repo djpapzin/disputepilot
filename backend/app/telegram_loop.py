@@ -9,10 +9,15 @@ from backend.app.config import (
     TELEGRAM_APPROVAL_CHAT_ID,
     TELEGRAM_APPROVAL_THREAD_ID,
     TELEGRAM_BOT_TOKEN,
+    TELEGRAM_CALLBACK_AUDIT_DB_PATH,
     TELEGRAM_SEND_ENABLED,
 )
-from backend.app.telegram_preview import APPROVAL_BUTTONS
-
+from backend.app.telegram_callback_audit import (
+    DEFAULT_INITIAL_CASE_STATE,
+    TelegramCallbackAuditStore,
+    TelegramCallbackTransitionError,
+)
+from backend.app.telegram_preview import APPROVAL_ACTIONS
 
 CALLBACK_PREFIX = "disputepilot"
 
@@ -29,7 +34,7 @@ class TelegramLoopConfigError(TelegramLoopError):
     """Raised when Telegram configuration is incomplete for sending."""
 
 
-ACTION_TO_CALLBACK = {label: label.lower().replace(" ", "_") for label in APPROVAL_BUTTONS}
+SUPPORTED_CALLBACK_ACTIONS = set(APPROVAL_ACTIONS.values())
 
 
 def _telegram_api_base() -> str:
@@ -78,7 +83,7 @@ def build_telegram_approval_payload(case: dict[str, Any]) -> dict[str, Any]:
                     "text": label,
                     "callback_data": build_callback_payload(case["case_id"], action),
                 }
-                for label, action in ACTION_TO_CALLBACK.items()
+                for label, action in APPROVAL_ACTIONS.items()
             ]
         ]
     }
@@ -139,6 +144,10 @@ def parse_telegram_update(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(callback_query, dict):
         raise TelegramLoopError("Expected a callback_query payload.")
 
+    callback_query_id = callback_query.get("id")
+    if not isinstance(callback_query_id, str) or not callback_query_id.strip():
+        raise TelegramLoopError("Missing callback query ID.")
+
     data = callback_query.get("data")
     if not isinstance(data, str):
         raise TelegramLoopError("Missing callback data.")
@@ -148,19 +157,45 @@ def parse_telegram_update(payload: dict[str, Any]) -> dict[str, Any]:
         raise TelegramLoopError("Unsupported callback payload format.")
 
     _, case_id, action = parts
-    allowed_actions = set(ACTION_TO_CALLBACK.values())
-    if action not in allowed_actions:
+    if action not in SUPPORTED_CALLBACK_ACTIONS:
         raise TelegramLoopError(f"Unsupported action '{action}'.")
 
-    if TELEGRAM_ALLOWED_USER_IDS:
-        sender = callback_query.get("from", {})
-        sender_id = sender.get("id")
-        if not isinstance(sender_id, int) or sender_id not in TELEGRAM_ALLOWED_USER_IDS:
-            raise TelegramLoopConfigError("Sender is not authorized for this Telegram bot.")
+    sender = callback_query.get("from")
+    sender_id = sender.get("id") if isinstance(sender, dict) else None
+    if not isinstance(sender_id, int):
+        raise TelegramLoopError("Missing sender ID in callback payload.")
+
+    if TELEGRAM_ALLOWED_USER_IDS and sender_id not in TELEGRAM_ALLOWED_USER_IDS:
+        raise TelegramLoopConfigError("Sender is not authorized for this Telegram bot.")
 
     return {
         "case_id": case_id,
         "action": action,
-        "callback_query_id": callback_query.get("id"),
-        "sender": callback_query.get("from", {}),
+        "callback_query_id": callback_query_id,
+        "authorized_sender_id": sender_id,
     }
+
+
+def get_telegram_callback_audit_store() -> TelegramCallbackAuditStore:
+    return TelegramCallbackAuditStore(TELEGRAM_CALLBACK_AUDIT_DB_PATH)
+
+
+def build_callback_audit_response(record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": "telegram_callback_duplicate_ignored" if record.get("duplicate") else "telegram_callback_recorded",
+        "duplicate": bool(record.get("duplicate", False)),
+        "audit_entry": {
+            "case_id": record["case_id"],
+            "action": record["action"],
+            "callback_query_id": record["callback_query_id"],
+            "authorized_sender_id": record["authorized_sender_id"],
+            "timestamp": record["timestamp"],
+            "previous_case_state": record["previous_case_state"],
+            "resulting_case_state": record["resulting_case_state"],
+            "idempotency_key": record["idempotency_key"],
+        },
+    }
+
+
+def current_case_state_or_default(store: TelegramCallbackAuditStore, case_id: str) -> str:
+    return store.get_current_case_state(case_id) or DEFAULT_INITIAL_CASE_STATE

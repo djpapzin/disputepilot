@@ -21,8 +21,8 @@ def build_telegram_approval_preview(case: dict[str, Any]) -> dict[str, Any]:
         "case_type": case["case_type"],
         "priority": case.get("priority", "unknown"),
         "deadline": deadline,
-        "approval_buttons": ["Approve", "Edit", "Snooze", "Mark done"],
-        "response_prompt": f"Approve the synthetic reply for {case['case_id']} or ask for edits.",
+        "approval_buttons": APPROVAL_BUTTONS,
+        "response_prompt": f"Approve the synthetic reply for {case['case_id']} or ask for a review escalation.",
         "escalation_rule": "If the human does not act before the deadline, keep the case open and flag it for follow-up.",
         "buttons": APPROVAL_BUTTONS,
     }

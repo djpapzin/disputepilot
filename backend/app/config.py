@@ -42,6 +42,9 @@ UIPATH_AUTH_TOKEN = os.getenv("UIPATH_AUTH_TOKEN", "")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_FIXTURE_DIR = PROJECT_ROOT / "demo-data" / "cases"
+TELEGRAM_CALLBACK_AUDIT_DB_PATH = Path(
+    os.getenv("DISPUTEPILOT_TELEGRAM_CALLBACK_AUDIT_DB_PATH", str(PROJECT_ROOT / ".runtime" / "telegram_callback_audit.sqlite3"))
+)
 
 
 def get_integrations() -> dict[str, bool]:
