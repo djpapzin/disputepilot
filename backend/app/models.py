@@ -63,9 +63,13 @@ class TelegramApprovalPreview(BaseModel):
     priority: str
     deadline: str | None = None
     approval_buttons: list[str]
+    valid_actions: list[str] = Field(default_factory=list)
+    card_revision: int = 1
+    case_state: str
     response_prompt: str
     escalation_rule: str
     buttons: list[str] = Field(default_factory=list)
+    callback_payload_example: str | None = None
 
 
 class RedactionScanResult(BaseModel):
