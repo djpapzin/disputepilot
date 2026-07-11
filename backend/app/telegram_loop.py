@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 from urllib import error, request
-import json
 
 from backend.app.config import (
     TELEGRAM_ALLOWED_USER_IDS,
@@ -12,14 +12,11 @@ from backend.app.config import (
     TELEGRAM_CALLBACK_AUDIT_DB_PATH,
     TELEGRAM_SEND_ENABLED,
 )
-from backend.app.telegram_callback_audit import (
-    DEFAULT_INITIAL_CASE_STATE,
-    TelegramCallbackAuditStore,
-    TelegramCallbackTransitionError,
-)
+from backend.app.telegram_callback_audit import DEFAULT_INITIAL_CASE_STATE, TelegramCallbackAuditStore
 from backend.app.telegram_preview import APPROVAL_ACTIONS
 
 CALLBACK_PREFIX = "disputepilot"
+SUPPORTED_CALLBACK_ACTIONS = set(APPROVAL_ACTIONS.values())
 
 
 class TelegramLoopError(RuntimeError):
@@ -34,7 +31,8 @@ class TelegramLoopConfigError(TelegramLoopError):
     """Raised when Telegram configuration is incomplete for sending."""
 
 
-SUPPORTED_CALLBACK_ACTIONS = set(APPROVAL_ACTIONS.values())
+class TelegramLoopAuthorizationError(TelegramLoopError):
+    """Raised when a Telegram sender is not permitted to act."""
 
 
 def _telegram_api_base() -> str:
@@ -52,6 +50,14 @@ def _as_int(value: str) -> int | None:
 
 def _coerce_chat_id(chat_id: str) -> int | str:
     return _as_int(chat_id) or chat_id
+
+
+def _require_allowed_sender_ids() -> set[int]:
+    if TELEGRAM_ALLOWED_USER_IDS is None:
+        raise TelegramLoopConfigError("DISPUTEPILOT_TELEGRAM_ALLOWED_USER_IDS must be configured before Telegram callbacks are accepted.")
+    if not TELEGRAM_ALLOWED_USER_IDS:
+        raise TelegramLoopConfigError("DISPUTEPILOT_TELEGRAM_ALLOWED_USER_IDS cannot be empty for Telegram callbacks.")
+    return set(TELEGRAM_ALLOWED_USER_IDS)
 
 
 def _message_text(case: dict[str, Any]) -> str:
@@ -165,8 +171,9 @@ def parse_telegram_update(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(sender_id, int):
         raise TelegramLoopError("Missing sender ID in callback payload.")
 
-    if TELEGRAM_ALLOWED_USER_IDS and sender_id not in TELEGRAM_ALLOWED_USER_IDS:
-        raise TelegramLoopConfigError("Sender is not authorized for this Telegram bot.")
+    allowed_sender_ids = _require_allowed_sender_ids()
+    if sender_id not in allowed_sender_ids:
+        raise TelegramLoopAuthorizationError("Sender is not authorized for this Telegram bot.")
 
     return {
         "case_id": case_id,

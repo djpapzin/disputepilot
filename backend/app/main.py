@@ -10,11 +10,12 @@ from backend.app.config import APP_NAME, DEFAULT_FIXTURE_DIR, DEMO_MODE, get_int
 from backend.app.fixture_loader import CaseNotFoundError, FixtureLoadError, load_case, load_cases
 from backend.app.models import HealthResponse
 from backend.app.pipeline import analyze_case
+from backend.app.telegram_callback_audit import TelegramCallbackTransitionError
 from backend.app.telegram_loop import (
+    TelegramLoopAuthorizationError,
     TelegramLoopConfigError,
     TelegramLoopDisabledError,
     TelegramLoopError,
-    TelegramCallbackTransitionError,
     build_callback_audit_response,
     current_case_state_or_default,
     get_telegram_callback_audit_store,
@@ -157,13 +158,11 @@ def telegram_callback_updates(update: dict[str, Any]) -> dict[str, Any]:
         parsed = parse_telegram_update(update)
         case = load_case(parsed["case_id"], _fixture_dir())
         store = get_telegram_callback_audit_store()
-        current_state = current_case_state_or_default(store, parsed["case_id"])
         record = store.record_callback(
             case_id=parsed["case_id"],
             action=parsed["action"],
             callback_query_id=parsed["callback_query_id"],
             authorized_sender_id=parsed["authorized_sender_id"],
-            previous_case_state=current_state,
         )
         return {
             **build_callback_audit_response(record),
@@ -177,6 +176,8 @@ def telegram_callback_updates(update: dict[str, Any]) -> dict[str, Any]:
         }
     except CaseNotFoundError as exc:
         raise _case_not_found(exc) from exc
+    except TelegramLoopAuthorizationError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except TelegramCallbackTransitionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except TelegramLoopConfigError as exc:
@@ -190,7 +191,7 @@ def telegram_callback_audit_history(case_id: str) -> dict[str, Any]:
     try:
         case = load_case(case_id, _fixture_dir())
         store = get_telegram_callback_audit_store()
-        history = store.get_case_history(case_id)
+        history = store.get_public_case_history(case_id)
         current_state = store.get_current_case_state(case_id) or current_case_state_or_default(store, case_id)
         return {
             "case_id": case_id,
