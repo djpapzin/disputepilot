@@ -148,14 +148,38 @@ class TelegramCallbackAuditStore:
             "updated_at": self._now(),
         }
 
-    def _ensure_case_state_row(self, conn: sqlite3.Connection, case_id: str) -> sqlite3.Row:
+    def _latest_audit_state_row(self, conn: sqlite3.Connection, case_id: str) -> sqlite3.Row | None:
+        return conn.execute(
+            """
+            SELECT case_id, action, callback_query_id, callback_revision, authorized_sender_id, timestamp,
+                   previous_case_state, resulting_case_state, active_revision_before, active_revision_after, idempotency_key
+            FROM telegram_callback_audit
+            WHERE case_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (case_id,),
+        ).fetchone()
+
+    def _upsert_case_state_row(
+        self,
+        conn: sqlite3.Connection,
+        case_id: str,
+        current_case_state: str,
+        active_revision: int,
+        updated_at: str,
+    ) -> sqlite3.Row:
         conn.execute(
             """
-            INSERT OR IGNORE INTO telegram_callback_case_state (
+            INSERT INTO telegram_callback_case_state (
                 case_id, current_case_state, active_revision, updated_at
             ) VALUES (?, ?, ?, ?)
+            ON CONFLICT(case_id) DO UPDATE SET
+                current_case_state = excluded.current_case_state,
+                active_revision = excluded.active_revision,
+                updated_at = excluded.updated_at
             """,
-            (case_id, DEFAULT_INITIAL_CASE_STATE, DEFAULT_INITIAL_CARD_REVISION, self._now()),
+            (case_id, current_case_state, active_revision, updated_at),
         )
         row = conn.execute(
             """
@@ -168,18 +192,46 @@ class TelegramCallbackAuditStore:
         assert row is not None
         return row
 
+    def _load_or_backfill_case_state_row(self, conn: sqlite3.Connection, case_id: str) -> sqlite3.Row:
+        row = conn.execute(
+            """
+            SELECT case_id, current_case_state, active_revision, updated_at
+            FROM telegram_callback_case_state
+            WHERE case_id = ?
+            """,
+            (case_id,),
+        ).fetchone()
+        if row is not None:
+            return row
+
+        latest_audit = self._latest_audit_state_row(conn, case_id)
+        if latest_audit is None:
+            reconstructed = self._default_case_state_row(case_id)
+        else:
+            active_revision = int(latest_audit["active_revision_after"] or latest_audit["callback_revision"] or DEFAULT_INITIAL_CARD_REVISION)
+            reconstructed = {
+                "case_id": case_id,
+                "current_case_state": str(latest_audit["resulting_case_state"]),
+                "active_revision": active_revision,
+                "updated_at": latest_audit["timestamp"] or self._now(),
+            }
+
+        return self._upsert_case_state_row(
+            conn,
+            case_id,
+            str(reconstructed["current_case_state"]),
+            int(reconstructed["active_revision"]),
+            str(reconstructed["updated_at"]),
+        )
+
+    def _ensure_case_state_row(self, conn: sqlite3.Connection, case_id: str) -> sqlite3.Row:
+        return self._load_or_backfill_case_state_row(conn, case_id)
+
     def get_case_state(self, case_id: str) -> dict[str, Any]:
         with self._connect() as conn:
-            row = conn.execute(
-                """
-                SELECT case_id, current_case_state, active_revision, updated_at
-                FROM telegram_callback_case_state
-                WHERE case_id = ?
-                """,
-                (case_id,),
-            ).fetchone()
-        if row is None:
-            return self._default_case_state_row(case_id)
+            conn.execute("BEGIN IMMEDIATE")
+            row = self._load_or_backfill_case_state_row(conn, case_id)
+            conn.commit()
         return {
             "case_id": row["case_id"],
             "current_case_state": row["current_case_state"],

@@ -204,6 +204,8 @@ def telegram_callback_updates(update: dict[str, Any]) -> object:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except TelegramLoopStaleCardError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except TelegramCallbackTransitionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except TelegramCallbackStaleCardError as exc:
         store = get_telegram_callback_audit_store()
         return JSONResponse(

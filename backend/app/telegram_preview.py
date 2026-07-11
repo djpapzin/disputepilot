@@ -120,14 +120,29 @@ def build_telegram_approval_preview(
     resolved_state = case_state or case.get("approval_state") or DEFAULT_APPROVAL_STATE
     resolved_revision = int(case.get("card_revision", card_revision))
     buttons = approval_buttons_for_state(resolved_state)
+    deadline = None
+    if case.get("extracted_deadlines"):
+        deadline = case["extracted_deadlines"][0].get("date")
+    callback_payload_example = (
+        build_callback_payload(case["case_id"], resolved_revision, approval_actions_for_state(resolved_state).get(buttons[0], ""))
+        if buttons
+        else None
+    )
     return {
         "preview_only": True,
         "send_enabled": TELEGRAM_SEND_ENABLED,
         "title": f"{case['case_id']}: {case['case_type']}",
         "body": _approval_body(case, resolved_state),
+        "case_id": case["case_id"],
+        "case_type": case["case_type"],
+        "priority": case.get("priority", "unknown"),
+        "deadline": deadline,
         "buttons": buttons,
         "approval_buttons": buttons,
+        "valid_actions": buttons,
         "card_revision": resolved_revision,
+        "case_state": resolved_state,
         "approval_state": resolved_state,
-        "callback_data_example": build_callback_payload(case["case_id"], resolved_revision, approval_actions_for_state(resolved_state).get(buttons[0], "")) if buttons else None,
+        "callback_payload_example": callback_payload_example,
+        "callback_data_example": callback_payload_example,
     }

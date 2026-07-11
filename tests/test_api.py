@@ -106,9 +106,16 @@ def test_analyze_case_endpoint():
     assert payload["workflow_handoff_preview"]["deadline"] == "2026-07-21"
     assert payload["telegram_approval_preview"]["preview_only"] is True
     assert payload["telegram_approval_preview"]["reply_channel"] == "Telegram topic/thread"
+    assert payload["telegram_approval_preview"]["case_id"] == "DP-GAM-001"
+    assert payload["telegram_approval_preview"]["case_type"] == "gambling_operator_system_or_refund_dispute"
+    assert payload["telegram_approval_preview"]["priority"] == "medium"
+    assert payload["telegram_approval_preview"]["deadline"] == "2026-07-21"
     assert payload["telegram_approval_preview"]["approval_buttons"] == ["Approve", "Edit", "Snooze", "Mark done"]
+    assert payload["telegram_approval_preview"]["valid_actions"] == ["Approve", "Edit", "Snooze", "Mark done"]
     assert payload["telegram_approval_preview"]["approval_state"] == "draft_pending"
+    assert payload["telegram_approval_preview"]["case_state"] == "draft_pending"
     assert payload["telegram_approval_preview"]["card_revision"] == 1
+    assert payload["telegram_approval_preview"]["callback_payload_example"].startswith("disputepilot:DP-GAM-001:1:")
 
 
 @pytest.mark.parametrize(
@@ -129,6 +136,24 @@ def test_telegram_notify_rejects_missing_or_empty_allowlist(monkeypatch: pytest.
 
     assert response.status_code == expected_status
     assert expected_message in response.json()["message"]
+
+
+def test_telegram_notify_disabled_returns_preview_identity_fields(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr("backend.app.main._current_integrations", lambda: {"gmail": False, "uipath": False, "telegram_send": False})
+    monkeypatch.setattr("backend.app.telegram_loop.TELEGRAM_SEND_ENABLED", False, raising=False)
+
+    response = client.post("/cases/DP-DEBT-001/telegram/notify")
+
+    assert response.status_code == 503
+    payload = response.json()
+    preview = payload["telegram_approval_preview"]
+    assert payload["status"] == "telegram_send_disabled"
+    assert preview["case_id"] == "DP-DEBT-001"
+    assert preview["case_type"] == "telecom_debt_collector_dispute"
+    assert preview["priority"] == "high"
+    assert preview["deadline"] == "2026-07-25"
+    assert preview["case_state"] == "draft_pending"
+    assert preview["card_revision"] == 1
 
 
 def test_demo_endpoint_returns_compact_summary():

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Barrier
@@ -342,3 +343,116 @@ def test_telegram_callback_persistence_survives_new_store_instance(audit_db: Pat
     assert history[0]["callback_query_id"] == "cb-restart-safe"
     assert history[0]["resulting_case_state"] == "completed"
     assert fresh_store.get_current_case_state("DP-DEBT-001") == "completed"
+
+
+def test_case_state_backfills_from_legacy_audit_history(audit_db: Path, allow_sender: None):
+    store = TelegramCallbackAuditStore(audit_db)
+    audit_entry = store.record_callback(
+        case_id="DP-DEBT-001",
+        action="edit_draft",
+        callback_query_id="cb-legacy-backfill",
+        authorized_sender_id=123456,
+        callback_revision=1,
+    )
+    assert audit_entry["resulting_case_state"] == "edit_requested"
+
+    with sqlite3.connect(audit_db) as conn:
+        conn.execute("DELETE FROM telegram_callback_case_state WHERE case_id = ?", ("DP-DEBT-001",))
+        conn.commit()
+
+    fresh_store = TelegramCallbackAuditStore(audit_db)
+    state = fresh_store.get_case_state("DP-DEBT-001")
+
+    assert state["current_case_state"] == "edit_requested"
+    assert state["active_revision"] == 2
+    with sqlite3.connect(audit_db) as conn:
+        row = conn.execute(
+            "SELECT current_case_state, active_revision FROM telegram_callback_case_state WHERE case_id = ?",
+            ("DP-DEBT-001",),
+        ).fetchone()
+    assert row == ("edit_requested", 2)
+
+
+def test_case_state_backfill_falls_back_to_draft_pending_when_no_history(audit_db: Path):
+    store = TelegramCallbackAuditStore(audit_db)
+
+    state = store.get_case_state("DP-DEBT-001")
+
+    assert state["current_case_state"] == "draft_pending"
+    assert state["active_revision"] == 1
+    with sqlite3.connect(audit_db) as conn:
+        row_count = conn.execute(
+            "SELECT COUNT(*) FROM telegram_callback_case_state WHERE case_id = ?",
+            ("DP-DEBT-001",),
+        ).fetchone()[0]
+    assert row_count == 1
+
+
+def test_case_state_backfill_is_idempotent(audit_db: Path, allow_sender: None):
+    store = TelegramCallbackAuditStore(audit_db)
+    store.record_callback(
+        case_id="DP-DEBT-001",
+        action="snooze_draft",
+        callback_query_id="cb-idempotent-backfill",
+        authorized_sender_id=123456,
+        callback_revision=1,
+    )
+    with sqlite3.connect(audit_db) as conn:
+        conn.execute("DELETE FROM telegram_callback_case_state WHERE case_id = ?", ("DP-DEBT-001",))
+        conn.commit()
+
+    fresh_store = TelegramCallbackAuditStore(audit_db)
+    first = fresh_store.get_case_state("DP-DEBT-001")
+    second = fresh_store.get_case_state("DP-DEBT-001")
+
+    assert first == second
+    assert first["current_case_state"] == "snoozed"
+    assert first["active_revision"] == 2
+    with sqlite3.connect(audit_db) as conn:
+        row_count = conn.execute(
+            "SELECT COUNT(*) FROM telegram_callback_case_state WHERE case_id = ?",
+            ("DP-DEBT-001",),
+        ).fetchone()[0]
+    assert row_count == 1
+
+
+def test_case_state_backfill_handles_concurrent_requests(audit_db: Path, allow_sender: None):
+    store = TelegramCallbackAuditStore(audit_db)
+    store.record_callback(
+        case_id="DP-DEBT-001",
+        action="approve_draft",
+        callback_query_id="cb-concurrency-backfill",
+        authorized_sender_id=123456,
+        callback_revision=1,
+    )
+    with sqlite3.connect(audit_db) as conn:
+        conn.execute("DELETE FROM telegram_callback_case_state WHERE case_id = ?", ("DP-DEBT-001",))
+        conn.commit()
+
+    barrier = Barrier(2)
+
+    def load_state() -> dict[str, object]:
+        barrier.wait()
+        return TelegramCallbackAuditStore(audit_db).get_case_state("DP-DEBT-001")
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(load_state), executor.submit(load_state)]
+        results = [future.result() for future in futures]
+
+    assert results[0]["current_case_state"] == "approved_draft"
+    assert results[0] == results[1]
+    with sqlite3.connect(audit_db) as conn:
+        row_count = conn.execute(
+            "SELECT COUNT(*) FROM telegram_callback_case_state WHERE case_id = ?",
+            ("DP-DEBT-001",),
+        ).fetchone()[0]
+    assert row_count == 1
+
+
+def test_invalid_same_revision_transition_returns_409(audit_db: Path, allow_sender: None):
+    first = client.post("/telegram/updates", json=_callback("approve_draft", 1, "cb-same-revision-first"))
+    assert first.status_code == 200
+
+    conflict = client.post("/telegram/updates", json=_callback("edit_draft", 2, "cb-invalid-same-revision"))
+    assert conflict.status_code == 409
+    assert "Unsupported transition" in conflict.json()["detail"]
