@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 DEFAULT_INITIAL_CASE_STATE = "draft_pending"
+DEFAULT_INITIAL_CARD_REVISION = 1
 
 SUPPORTED_ACTION_TO_STATE = {
     "draft_pending": {
@@ -24,7 +25,9 @@ SUPPORTED_ACTION_TO_STATE = {
         "approve_draft": "approved_draft",
         "mark_done": "completed",
     },
-    "approved_draft": {},
+    "approved_draft": {
+        "mark_done": "completed",
+    },
     "completed": {},
 }
 
@@ -35,6 +38,10 @@ class TelegramCallbackAuditError(RuntimeError):
 
 class TelegramCallbackTransitionError(TelegramCallbackAuditError):
     """Raised when a callback attempts an invalid state transition."""
+
+
+class TelegramCallbackStaleCardError(TelegramCallbackAuditError):
+    """Raised when a callback targets an older revision than the active card."""
 
 
 class TelegramCallbackAuditStore:
@@ -63,18 +70,43 @@ class TelegramCallbackAuditStore:
                     case_id TEXT NOT NULL,
                     action TEXT NOT NULL,
                     callback_query_id TEXT NOT NULL UNIQUE,
+                    callback_revision INTEGER NOT NULL DEFAULT 1,
                     authorized_sender_id INTEGER NOT NULL,
                     timestamp TEXT NOT NULL,
                     previous_case_state TEXT NOT NULL,
                     resulting_case_state TEXT NOT NULL,
+                    active_revision_before INTEGER NOT NULL DEFAULT 1,
+                    active_revision_after INTEGER NOT NULL DEFAULT 2,
                     idempotency_key TEXT NOT NULL UNIQUE
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS telegram_callback_case_state (
+                    case_id TEXT PRIMARY KEY,
+                    current_case_state TEXT NOT NULL,
+                    active_revision INTEGER NOT NULL,
+                    updated_at TEXT NOT NULL
                 )
                 """
             )
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_telegram_callback_audit_case_id ON telegram_callback_audit(case_id, id)"
             )
+            self._ensure_audit_columns(conn)
             conn.commit()
+
+    def _ensure_audit_columns(self, conn: sqlite3.Connection) -> None:
+        existing_columns = {row["name"] for row in conn.execute("PRAGMA table_info(telegram_callback_audit)")}
+        columns_to_add = {
+            "callback_revision": "INTEGER NOT NULL DEFAULT 1",
+            "active_revision_before": "INTEGER NOT NULL DEFAULT 1",
+            "active_revision_after": "INTEGER NOT NULL DEFAULT 2",
+        }
+        for column, definition in columns_to_add.items():
+            if column not in existing_columns:
+                conn.execute(f"ALTER TABLE telegram_callback_audit ADD COLUMN {column} {definition}")
 
     @staticmethod
     def _now() -> str:
@@ -90,10 +122,13 @@ class TelegramCallbackAuditStore:
             "case_id": row["case_id"],
             "action": row["action"],
             "callback_query_id": row["callback_query_id"],
+            "callback_revision": int(row["callback_revision"]),
             "authorized_sender_id": row["authorized_sender_id"],
             "timestamp": row["timestamp"],
             "previous_case_state": row["previous_case_state"],
             "resulting_case_state": row["resulting_case_state"],
+            "active_revision_before": int(row["active_revision_before"]),
+            "active_revision_after": int(row["active_revision_after"]),
             "idempotency_key": row["idempotency_key"],
         }
 
@@ -105,12 +140,67 @@ class TelegramCallbackAuditStore:
             "resulting_case_state": row["resulting_case_state"],
         }
 
+    def _default_case_state_row(self, case_id: str) -> dict[str, Any]:
+        return {
+            "case_id": case_id,
+            "current_case_state": DEFAULT_INITIAL_CASE_STATE,
+            "active_revision": DEFAULT_INITIAL_CARD_REVISION,
+            "updated_at": self._now(),
+        }
+
+    def _ensure_case_state_row(self, conn: sqlite3.Connection, case_id: str) -> sqlite3.Row:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO telegram_callback_case_state (
+                case_id, current_case_state, active_revision, updated_at
+            ) VALUES (?, ?, ?, ?)
+            """,
+            (case_id, DEFAULT_INITIAL_CASE_STATE, DEFAULT_INITIAL_CARD_REVISION, self._now()),
+        )
+        row = conn.execute(
+            """
+            SELECT case_id, current_case_state, active_revision, updated_at
+            FROM telegram_callback_case_state
+            WHERE case_id = ?
+            """,
+            (case_id,),
+        ).fetchone()
+        assert row is not None
+        return row
+
+    def get_case_state(self, case_id: str) -> dict[str, Any]:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT case_id, current_case_state, active_revision, updated_at
+                FROM telegram_callback_case_state
+                WHERE case_id = ?
+                """,
+                (case_id,),
+            ).fetchone()
+        if row is None:
+            return self._default_case_state_row(case_id)
+        return {
+            "case_id": row["case_id"],
+            "current_case_state": row["current_case_state"],
+            "active_revision": int(row["active_revision"]),
+            "updated_at": row["updated_at"],
+        }
+
+    def get_current_case_state(self, case_id: str) -> str | None:
+        state = self.get_case_state(case_id)
+        return str(state["current_case_state"])
+
+    def get_active_case_revision(self, case_id: str) -> int:
+        state = self.get_case_state(case_id)
+        return int(state["active_revision"])
+
     def get_case_history(self, case_id: str) -> list[dict[str, Any]]:
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT case_id, action, callback_query_id, authorized_sender_id, timestamp,
-                       previous_case_state, resulting_case_state, idempotency_key
+                SELECT case_id, action, callback_query_id, callback_revision, authorized_sender_id, timestamp,
+                       previous_case_state, resulting_case_state, active_revision_before, active_revision_after, idempotency_key
                 FROM telegram_callback_audit
                 WHERE case_id = ?
                 ORDER BY id ASC
@@ -132,28 +222,12 @@ class TelegramCallbackAuditStore:
             ).fetchall()
         return [self._public_row(row) for row in rows]
 
-    def get_current_case_state(self, case_id: str) -> str | None:
-        with self._connect() as conn:
-            row = conn.execute(
-                """
-                SELECT resulting_case_state
-                FROM telegram_callback_audit
-                WHERE case_id = ?
-                ORDER BY id DESC
-                LIMIT 1
-                """,
-                (case_id,),
-            ).fetchone()
-        if row is None:
-            return None
-        return str(row["resulting_case_state"])
-
     def get_by_callback_query_id(self, callback_query_id: str) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT case_id, action, callback_query_id, authorized_sender_id, timestamp,
-                       previous_case_state, resulting_case_state, idempotency_key
+                SELECT case_id, action, callback_query_id, callback_revision, authorized_sender_id, timestamp,
+                       previous_case_state, resulting_case_state, active_revision_before, active_revision_after, idempotency_key
                 FROM telegram_callback_audit
                 WHERE callback_query_id = ?
                 LIMIT 1
@@ -171,6 +245,7 @@ class TelegramCallbackAuditStore:
         action: str,
         callback_query_id: str,
         authorized_sender_id: int,
+        callback_revision: int | None,
         timestamp: str | None = None,
     ) -> dict[str, Any]:
         idempotency_key = self._idempotency_key(callback_query_id)
@@ -180,8 +255,8 @@ class TelegramCallbackAuditStore:
             conn.execute("BEGIN IMMEDIATE")
             existing = conn.execute(
                 """
-                SELECT case_id, action, callback_query_id, authorized_sender_id, timestamp,
-                       previous_case_state, resulting_case_state, idempotency_key
+                SELECT case_id, action, callback_query_id, callback_revision, authorized_sender_id, timestamp,
+                       previous_case_state, resulting_case_state, active_revision_before, active_revision_after, idempotency_key
                 FROM telegram_callback_audit
                 WHERE callback_query_id = ?
                 LIMIT 1
@@ -191,19 +266,13 @@ class TelegramCallbackAuditStore:
             if existing is not None:
                 return {**self._row_to_dict(existing), "duplicate": True}
 
-            current_case_state_row = conn.execute(
-                """
-                SELECT resulting_case_state
-                FROM telegram_callback_audit
-                WHERE case_id = ?
-                ORDER BY id DESC
-                LIMIT 1
-                """,
-                (case_id,),
-            ).fetchone()
-            current_case_state = (
-                str(current_case_state_row["resulting_case_state"]) if current_case_state_row is not None else DEFAULT_INITIAL_CASE_STATE
-            )
+            case_state_row = self._ensure_case_state_row(conn, case_id)
+            current_case_state = str(case_state_row["current_case_state"])
+            active_revision = int(case_state_row["active_revision"])
+            if callback_revision is None or callback_revision != active_revision:
+                raise TelegramCallbackStaleCardError(
+                    f"Stale Telegram card revision for '{case_id}': received {callback_revision!r}, active {active_revision}."
+                )
 
             valid_transitions = SUPPORTED_ACTION_TO_STATE.get(current_case_state, {})
             if action not in valid_transitions:
@@ -212,32 +281,45 @@ class TelegramCallbackAuditStore:
                 )
 
             resulting_case_state = valid_transitions[action]
+            active_revision_after = active_revision + 1
 
             try:
                 conn.execute(
                     """
                     INSERT INTO telegram_callback_audit (
-                        case_id, action, callback_query_id, authorized_sender_id,
-                        timestamp, previous_case_state, resulting_case_state, idempotency_key
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        case_id, action, callback_query_id, callback_revision, authorized_sender_id,
+                        timestamp, previous_case_state, resulting_case_state, active_revision_before,
+                        active_revision_after, idempotency_key
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         case_id,
                         action,
                         callback_query_id,
+                        callback_revision,
                         authorized_sender_id,
                         timestamp,
                         current_case_state,
                         resulting_case_state,
+                        active_revision,
+                        active_revision_after,
                         idempotency_key,
                     ),
+                )
+                conn.execute(
+                    """
+                    UPDATE telegram_callback_case_state
+                    SET current_case_state = ?, active_revision = ?, updated_at = ?
+                    WHERE case_id = ?
+                    """,
+                    (resulting_case_state, active_revision_after, timestamp, case_id),
                 )
             except sqlite3.IntegrityError as exc:  # pragma: no cover - defensive race fallback
                 conn.rollback()
                 existing = conn.execute(
                     """
-                    SELECT case_id, action, callback_query_id, authorized_sender_id, timestamp,
-                           previous_case_state, resulting_case_state, idempotency_key
+                    SELECT case_id, action, callback_query_id, callback_revision, authorized_sender_id, timestamp,
+                           previous_case_state, resulting_case_state, active_revision_before, active_revision_after, idempotency_key
                     FROM telegram_callback_audit
                     WHERE callback_query_id = ?
                     LIMIT 1
@@ -253,10 +335,13 @@ class TelegramCallbackAuditStore:
             "case_id": case_id,
             "action": action,
             "callback_query_id": callback_query_id,
+            "callback_revision": callback_revision,
             "authorized_sender_id": authorized_sender_id,
             "timestamp": timestamp,
             "previous_case_state": current_case_state,
             "resulting_case_state": resulting_case_state,
+            "active_revision_before": active_revision,
+            "active_revision_after": active_revision_after,
             "idempotency_key": idempotency_key,
             "duplicate": False,
         }

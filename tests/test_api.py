@@ -107,6 +107,8 @@ def test_analyze_case_endpoint():
     assert payload["telegram_approval_preview"]["preview_only"] is True
     assert payload["telegram_approval_preview"]["reply_channel"] == "Telegram topic/thread"
     assert payload["telegram_approval_preview"]["approval_buttons"] == ["Approve", "Edit", "Snooze", "Mark done"]
+    assert payload["telegram_approval_preview"]["approval_state"] == "draft_pending"
+    assert payload["telegram_approval_preview"]["card_revision"] == 1
 
 
 @pytest.mark.parametrize(

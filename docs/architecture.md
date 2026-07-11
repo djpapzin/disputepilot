@@ -31,7 +31,7 @@ email/demo message
 | UiPath Maestro Case | Creates and orchestrates the case state, tasks, deadlines, and escalation steps. |
 | Extraction service | Pulls out dates, risk level, required action, and evidence fields. |
 | Drafting service | Produces a short suggested reply or action summary. |
-| Telegram approval | Lets a human choose Approve, Edit, Snooze, or Mark done. |
+| Telegram approval | Lets a human choose state-aware actions with revision-guarded callbacks. |
 | Outcome logger | Records the decision, timestamp, and next action. |
 
 ## MVP demo cases
