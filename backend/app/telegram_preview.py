@@ -5,9 +5,10 @@ from typing import Any
 from backend.app.config import TELEGRAM_SEND_ENABLED
 
 APPROVAL_ACTIONS = {
-    "Approve Draft": "approve_draft",
-    "Reject Draft": "reject_draft",
-    "Escalate": "escalate",
+    "Approve": "approve_draft",
+    "Edit": "edit_draft",
+    "Snooze": "snooze_draft",
+    "Mark done": "mark_done",
 }
 APPROVAL_BUTTONS = list(APPROVAL_ACTIONS.keys())
 

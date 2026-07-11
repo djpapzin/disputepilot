@@ -12,12 +12,14 @@ DEFAULT_INITIAL_CASE_STATE = "draft_pending"
 SUPPORTED_ACTION_TO_STATE = {
     "draft_pending": {
         "approve_draft": "approved_draft",
-        "reject_draft": "rejected_draft",
-        "escalate": "escalated",
+        "edit_draft": "edit_requested",
+        "snooze_draft": "snoozed",
+        "mark_done": "completed",
     },
     "approved_draft": {},
-    "rejected_draft": {},
-    "escalated": {},
+    "edit_requested": {},
+    "snoozed": {},
+    "completed": {},
 }
 
 
@@ -89,6 +91,14 @@ class TelegramCallbackAuditStore:
             "idempotency_key": row["idempotency_key"],
         }
 
+    @staticmethod
+    def _public_row(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "action": row["action"],
+            "previous_case_state": row["previous_case_state"],
+            "resulting_case_state": row["resulting_case_state"],
+        }
+
     def get_case_history(self, case_id: str) -> list[dict[str, Any]]:
         with self._connect() as conn:
             rows = conn.execute(
@@ -102,6 +112,19 @@ class TelegramCallbackAuditStore:
                 (case_id,),
             ).fetchall()
         return [self._row_to_dict(row) for row in rows]
+
+    def get_public_case_history(self, case_id: str) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT action, previous_case_state, resulting_case_state
+                FROM telegram_callback_audit
+                WHERE case_id = ?
+                ORDER BY id ASC
+                """,
+                (case_id,),
+            ).fetchall()
+        return [self._public_row(row) for row in rows]
 
     def get_current_case_state(self, case_id: str) -> str | None:
         with self._connect() as conn:
@@ -142,10 +165,8 @@ class TelegramCallbackAuditStore:
         action: str,
         callback_query_id: str,
         authorized_sender_id: int,
-        previous_case_state: str | None = None,
         timestamp: str | None = None,
     ) -> dict[str, Any]:
-        previous_case_state = previous_case_state or DEFAULT_INITIAL_CASE_STATE
         idempotency_key = self._idempotency_key(callback_query_id)
         timestamp = timestamp or self._now()
 
@@ -164,10 +185,24 @@ class TelegramCallbackAuditStore:
             if existing is not None:
                 return {**self._row_to_dict(existing), "duplicate": True}
 
-            valid_transitions = SUPPORTED_ACTION_TO_STATE.get(previous_case_state, {})
+            current_case_state_row = conn.execute(
+                """
+                SELECT resulting_case_state
+                FROM telegram_callback_audit
+                WHERE case_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (case_id,),
+            ).fetchone()
+            current_case_state = (
+                str(current_case_state_row["resulting_case_state"]) if current_case_state_row is not None else DEFAULT_INITIAL_CASE_STATE
+            )
+
+            valid_transitions = SUPPORTED_ACTION_TO_STATE.get(current_case_state, {})
             if action not in valid_transitions:
                 raise TelegramCallbackTransitionError(
-                    f"Unsupported transition from '{previous_case_state}' using action '{action}'."
+                    f"Unsupported transition from '{current_case_state}' using action '{action}'."
                 )
 
             resulting_case_state = valid_transitions[action]
@@ -186,7 +221,7 @@ class TelegramCallbackAuditStore:
                         callback_query_id,
                         authorized_sender_id,
                         timestamp,
-                        previous_case_state,
+                        current_case_state,
                         resulting_case_state,
                         idempotency_key,
                     ),
@@ -214,7 +249,7 @@ class TelegramCallbackAuditStore:
             "callback_query_id": callback_query_id,
             "authorized_sender_id": authorized_sender_id,
             "timestamp": timestamp,
-            "previous_case_state": previous_case_state,
+            "previous_case_state": current_case_state,
             "resulting_case_state": resulting_case_state,
             "idempotency_key": idempotency_key,
             "duplicate": False,

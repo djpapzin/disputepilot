@@ -113,7 +113,7 @@ curl http://127.0.0.1:8000/cases/DP-DEBT-001/telegram/audit-history
 - `/cases/{case_id}/handoff` sends an optional live UiPath handoff when `uipath` integration flags are enabled; otherwise it returns a handoff preview payload.
 - `/cases/{case_id}/telegram/notify` sends an optional live Telegram approval card when send is enabled; otherwise it returns a preview payload.
 - `/telegram/updates` parses, validates, and persists Telegram callback actions for the synthetic case approval workflow.
-- `/cases/{case_id}/telegram/audit-history` returns the stored Telegram callback audit trail for a case.
+- `/cases/{case_id}/telegram/audit-history` returns a redacted public audit trail for a case.
 - `/demo` returns a compact summary across all synthetic cases.
 
 The `/cases/{case_id}/handoff` route is integration-ready and uses optional `UIPATH_WEBHOOK_URL`/`UIPATH_INTEGRATION_ENABLED` settings; when disabled it is intentionally safe and preview-only.
