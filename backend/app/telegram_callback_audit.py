@@ -16,9 +16,15 @@ SUPPORTED_ACTION_TO_STATE = {
         "snooze_draft": "snoozed",
         "mark_done": "completed",
     },
+    "edit_requested": {
+        "approve_draft": "approved_draft",
+        "mark_done": "completed",
+    },
+    "snoozed": {
+        "approve_draft": "approved_draft",
+        "mark_done": "completed",
+    },
     "approved_draft": {},
-    "edit_requested": {},
-    "snoozed": {},
     "completed": {},
 }
 
