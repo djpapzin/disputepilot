@@ -4,7 +4,12 @@ from typing import Any
 
 from backend.app.config import TELEGRAM_SEND_ENABLED
 
-APPROVAL_BUTTONS = ["Approve Draft", "Edit Draft", "Snooze", "Mark Resolved", "Request Evidence"]
+APPROVAL_ACTIONS = {
+    "Approve Draft": "approve_draft",
+    "Reject Draft": "reject_draft",
+    "Escalate": "escalate",
+}
+APPROVAL_BUTTONS = list(APPROVAL_ACTIONS.keys())
 
 
 def build_telegram_card_preview(case: dict[str, Any]) -> dict[str, Any]:
