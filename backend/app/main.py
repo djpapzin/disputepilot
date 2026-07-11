@@ -10,15 +10,19 @@ from backend.app.config import APP_NAME, DEFAULT_FIXTURE_DIR, DEMO_MODE, get_int
 from backend.app.fixture_loader import CaseNotFoundError, FixtureLoadError, load_case, load_cases
 from backend.app.models import HealthResponse
 from backend.app.pipeline import analyze_case
-from backend.app.telegram_callback_audit import TelegramCallbackTransitionError
+from backend.app.telegram_approval import build_telegram_approval_preview
+from backend.app.telegram_callback_audit import TelegramCallbackStaleCardError, TelegramCallbackTransitionError
 from backend.app.telegram_loop import (
     TelegramLoopAuthorizationError,
     TelegramLoopConfigError,
     TelegramLoopDisabledError,
     TelegramLoopError,
+    TelegramLoopStaleCardError,
     build_callback_audit_response,
+    build_stale_card_response,
     current_case_state_or_default,
     get_telegram_callback_audit_store,
+    invalidate_telegram_callback_keyboard,
     parse_telegram_update,
     send_case_for_telegram_approval,
 )
@@ -131,17 +135,28 @@ def handoff_case_endpoint(case_id: str) -> object:
 def telegram_notify_case_endpoint(case_id: str) -> object:
     try:
         case = load_case(case_id, _fixture_dir())
+        store = get_telegram_callback_audit_store()
+        case_state = store.get_case_state(case_id)
+        preview = build_telegram_approval_preview(
+            case,
+            case_state=case_state["current_case_state"],
+            card_revision=case_state["active_revision"],
+        )
         if not _current_integrations().get("telegram_send", False):
             return JSONResponse(
                 status_code=503,
                 content={
                     "status": "telegram_send_disabled",
                     "message": "Set DISPUTEPILOT_TELEGRAM_SEND_ENABLED=true and bot credentials to enable live Telegram send.",
-                    "telegram_approval_preview": analyze_case(case)["telegram_approval_preview"],
+                    "telegram_approval_preview": preview,
                 },
             )
 
-        return send_case_for_telegram_approval(case)
+        return send_case_for_telegram_approval(
+            case,
+            case_state=case_state["current_case_state"],
+            card_revision=case_state["active_revision"],
+        )
     except TelegramLoopDisabledError as exc:
         return JSONResponse(status_code=503, content={"status": "telegram_send_disabled", "message": str(exc)})
     except TelegramLoopConfigError as exc:
@@ -153,7 +168,8 @@ def telegram_notify_case_endpoint(case_id: str) -> object:
 
 
 @app.post("/telegram/updates", response_model=None)
-def telegram_callback_updates(update: dict[str, Any]) -> dict[str, Any]:
+def telegram_callback_updates(update: dict[str, Any]) -> object:
+    parsed: dict[str, Any] = {}
     try:
         parsed = parse_telegram_update(update)
         case = load_case(parsed["case_id"], _fixture_dir())
@@ -163,9 +179,15 @@ def telegram_callback_updates(update: dict[str, Any]) -> dict[str, Any]:
             action=parsed["action"],
             callback_query_id=parsed["callback_query_id"],
             authorized_sender_id=parsed["authorized_sender_id"],
+            callback_revision=parsed["callback_revision"],
         )
+        keyboard_invalidation = None
+        try:
+            keyboard_invalidation = invalidate_telegram_callback_keyboard(parsed)
+        except TelegramLoopError:
+            keyboard_invalidation = {"status": "failed", "reason": "keyboard_invalidation_failed"}
         return {
-            **build_callback_audit_response(record),
+            **build_callback_audit_response(record, keyboard_invalidation=keyboard_invalidation),
             "case_exists": True,
             "synthetic_case_summary": {
                 "case_id": case["case_id"],
@@ -178,10 +200,20 @@ def telegram_callback_updates(update: dict[str, Any]) -> dict[str, Any]:
         raise _case_not_found(exc) from exc
     except TelegramLoopAuthorizationError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
-    except TelegramCallbackTransitionError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except TelegramLoopConfigError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except TelegramLoopStaleCardError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except TelegramCallbackStaleCardError as exc:
+        store = get_telegram_callback_audit_store()
+        return JSONResponse(
+            status_code=409,
+            content=build_stale_card_response(
+                case_id=parsed["case_id"],
+                callback_revision=parsed.get("callback_revision"),
+                case_state=store.get_case_state(parsed["case_id"]),
+            ),
+        )
     except TelegramLoopError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
