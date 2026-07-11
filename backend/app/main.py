@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -9,6 +10,13 @@ from backend.app.config import APP_NAME, DEFAULT_FIXTURE_DIR, DEMO_MODE, get_int
 from backend.app.fixture_loader import CaseNotFoundError, FixtureLoadError, load_case, load_cases
 from backend.app.models import HealthResponse
 from backend.app.pipeline import analyze_case
+from backend.app.telegram_loop import (
+    TelegramLoopConfigError,
+    TelegramLoopDisabledError,
+    TelegramLoopError,
+    parse_telegram_update,
+    send_case_for_telegram_approval,
+)
 from backend.app.uipath_integration import (
     UiPathIntegrationError,
     UiPathNotConfiguredError,
@@ -112,6 +120,41 @@ def handoff_case_endpoint(case_id: str) -> object:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except FixtureLoadError as exc:
         raise _fixture_failure(exc) from exc
+
+
+@app.post("/cases/{case_id}/telegram/notify", response_model=None)
+def telegram_notify_case_endpoint(case_id: str) -> object:
+    try:
+        case = load_case(case_id, _fixture_dir())
+        if not _current_integrations().get("telegram_send", False):
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "telegram_send_disabled",
+                    "message": "Set DISPUTEPILOT_TELEGRAM_SEND_ENABLED=true and bot credentials to enable live Telegram send.",
+                    "telegram_approval_preview": analyze_case(case)["telegram_approval_preview"],
+                },
+            )
+
+        return send_case_for_telegram_approval(case)
+    except TelegramLoopDisabledError as exc:
+        return JSONResponse(status_code=503, content={"status": "telegram_send_disabled", "message": str(exc)})
+    except TelegramLoopConfigError as exc:
+        return JSONResponse(status_code=503, content={"status": "telegram_integration_not_configured", "message": str(exc)})
+    except CaseNotFoundError as exc:
+        raise _case_not_found(exc) from exc
+    except FixtureLoadError as exc:
+        raise _fixture_failure(exc) from exc
+
+
+@app.post("/telegram/updates", response_model=None)
+def telegram_callback_updates(update: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return parse_telegram_update(update)
+    except TelegramLoopConfigError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except TelegramLoopError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/demo")

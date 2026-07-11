@@ -99,6 +99,8 @@ curl http://127.0.0.1:8000/cases
 curl http://127.0.0.1:8000/cases/DP-DEBT-001
 curl -X POST http://127.0.0.1:8000/cases/DP-DEBT-001/analyze
 curl -X POST http://127.0.0.1:8000/cases/DP-DEBT-001/handoff
+curl -X POST http://127.0.0.1:8000/cases/DP-DEBT-001/telegram/notify
+curl -X POST http://127.0.0.1:8000/telegram/updates -H 'Content-Type: application/json' -d '{"callback_query":{"id":"cb-1","from":{"id":123456},"data":"disputepilot:DP-DEBT-001:approve_draft"}}'
 curl http://127.0.0.1:8000/demo
 ```
 
