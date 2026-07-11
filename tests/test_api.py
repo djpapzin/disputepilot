@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from backend.app.fixture_loader import REQUIRED_FIELDS
@@ -105,6 +107,26 @@ def test_analyze_case_endpoint():
     assert payload["telegram_approval_preview"]["preview_only"] is True
     assert payload["telegram_approval_preview"]["reply_channel"] == "Telegram topic/thread"
     assert payload["telegram_approval_preview"]["approval_buttons"] == ["Approve", "Edit", "Snooze", "Mark done"]
+
+
+@pytest.mark.parametrize(
+    "allowlist_state, expected_status, expected_message",
+    [
+        (None, 503, "must be configured"),
+        (set(), 503, "cannot be empty"),
+    ],
+)
+def test_telegram_notify_rejects_missing_or_empty_allowlist(monkeypatch: pytest.MonkeyPatch, allowlist_state, expected_status: int, expected_message: str):
+    monkeypatch.setattr("backend.app.main._current_integrations", lambda: {"gmail": False, "uipath": False, "telegram_send": True})
+    monkeypatch.setattr("backend.app.telegram_loop.TELEGRAM_SEND_ENABLED", True, raising=False)
+    monkeypatch.setattr("backend.app.telegram_loop.TELEGRAM_BOT_TOKEN", "dummy-token", raising=False)
+    monkeypatch.setattr("backend.app.telegram_loop.TELEGRAM_APPROVAL_CHAT_ID", "123456", raising=False)
+    monkeypatch.setattr("backend.app.telegram_loop.TELEGRAM_ALLOWED_USER_IDS", allowlist_state, raising=False)
+
+    response = client.post("/cases/DP-DEBT-001/telegram/notify")
+
+    assert response.status_code == expected_status
+    assert expected_message in response.json()["message"]
 
 
 def test_demo_endpoint_returns_compact_summary():

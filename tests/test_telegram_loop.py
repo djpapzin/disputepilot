@@ -195,6 +195,43 @@ def test_telegram_callback_rejects_invalid_state_transition(audit_db: Path, allo
     assert history["current_case_state"] == "approved_draft"
 
 
+@pytest.mark.parametrize(
+    "start_action",
+    ["edit_draft", "snooze_draft"],
+)
+def test_telegram_callback_approval_can_follow_deferred_states(audit_db: Path, allow_sender: None, start_action: str):
+    first = client.post(
+        "/telegram/updates",
+        json={
+            "callback_query": {
+                "id": f"cb-deferred-{start_action}-1",
+                "from": {"id": 123456},
+                "data": f"disputepilot:DP-DEBT-001:{start_action}",
+            }
+        },
+    )
+    assert first.status_code == 200
+    assert first.json()["audit_entry"]["resulting_case_state"] in {"edit_requested", "snoozed"}
+
+    second = client.post(
+        "/telegram/updates",
+        json={
+            "callback_query": {
+                "id": f"cb-deferred-{start_action}-2",
+                "from": {"id": 123456},
+                "data": "disputepilot:DP-DEBT-001:approve_draft",
+            }
+        },
+    )
+    assert second.status_code == 200
+    assert second.json()["audit_entry"]["previous_case_state"] in {"edit_requested", "snoozed"}
+    assert second.json()["audit_entry"]["resulting_case_state"] == "approved_draft"
+
+    history = client.get("/cases/DP-DEBT-001/telegram/audit-history").json()
+    assert history["history_count"] == 2
+    assert history["current_case_state"] == "approved_draft"
+
+
 def test_telegram_callback_concurrent_requests_are_serialized(audit_db: Path, allow_sender: None):
     barrier = Barrier(2)
 
@@ -211,7 +248,7 @@ def test_telegram_callback_concurrent_requests_are_serialized(audit_db: Path, al
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = [
             executor.submit(submit, "approve_draft", "cb-concurrent-1"),
-            executor.submit(submit, "edit_draft", "cb-concurrent-2"),
+            executor.submit(submit, "approve_draft", "cb-concurrent-2"),
         ]
         results = []
         errors = []
@@ -226,8 +263,8 @@ def test_telegram_callback_concurrent_requests_are_serialized(audit_db: Path, al
     assert isinstance(errors[0], TelegramCallbackTransitionError)
     history = TelegramCallbackAuditStore(audit_db).get_case_history("DP-DEBT-001")
     assert len(history) == 1
-    assert history[0]["resulting_case_state"] in {"approved_draft", "edit_requested"}
-    assert TelegramCallbackAuditStore(audit_db).get_current_case_state("DP-DEBT-001") in {"approved_draft", "edit_requested"}
+    assert history[0]["resulting_case_state"] == "approved_draft"
+    assert TelegramCallbackAuditStore(audit_db).get_current_case_state("DP-DEBT-001") == "approved_draft"
 
 
 def test_telegram_callback_duplicate_callback_id_is_idempotent(audit_db: Path, allow_sender: None):

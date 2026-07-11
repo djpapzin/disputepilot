@@ -124,6 +124,8 @@ def send_case_for_telegram_approval(case: dict[str, Any]) -> dict[str, Any]:
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_APPROVAL_CHAT_ID:
         raise TelegramLoopConfigError("TELEGRAM_BOT_TOKEN and TELEGRAM_APPROVAL_CHAT_ID are required to send approvals.")
 
+    _require_allowed_sender_ids()
+
     payload = build_telegram_approval_payload(case)
     try:
         result = _post_json(f"{_telegram_api_base()}/sendMessage", payload)
